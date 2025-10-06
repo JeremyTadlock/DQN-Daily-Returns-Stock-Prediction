@@ -18,6 +18,11 @@ BINS_FINER  = np.linspace(-2.5, 2.5, 51)          # ±2.5 in 0.1 steps -> 51 bin
 WINDOW_SIZE = 25
 TICKER = "SPY"
 
+# Paths
+DOCS_DIR = "docs"
+HIST_PATH = os.path.join(DOCS_DIR, "history.csv")
+INDEX_PATH = os.path.join(DOCS_DIR, "index.html")
+
 # DQN Network (same as training, but optimizer unused)
 class DQN(nn.Module):
     def __init__(self, state_size, action_size, device=None):
@@ -43,7 +48,7 @@ class DQN(nn.Module):
         return value + (advantage - advantage.mean(dim=1, keepdim=True))
 
 # Testing Data Prep
-def get_testing_state(ticker=TICKER, window_size=WINDOW_SIZE, period="60d"):
+def get_testing_state(ticker, window_size=WINDOW_SIZE, period="60d"):
     data = yf.download(ticker, period=period, auto_adjust=True, progress=False)
     if data is None or data.empty:
         raise ValueError(f"No data downloaded for ticker: {ticker}")
@@ -53,30 +58,28 @@ def get_testing_state(ticker=TICKER, window_size=WINDOW_SIZE, period="60d"):
 
     if len(data) < window_size:
         raise ValueError(f"Not enough data to form a {window_size}-day window; got {len(data)} rows.")
-    
+
     # predicted_date selection (US/Eastern)
     last_complete_date = pd.Timestamp(data.index[-1]).tz_localize(None)  # trading day from dataset
     now_et = pd.Timestamp.now(tz="America/New_York")
     today_et = now_et.normalize().tz_localize(None)
 
     if today_et.weekday() < 5:  # Mon–Fri
+        # If the dataset already shows today's date (time-zone quirks), predict for TODAY only once.
         if last_complete_date >= today_et:
             predicted_date = (last_complete_date + pd.offsets.BDay(1)).date()
         else:
             predicted_date = today_et.date()
     else:
+        # Weekend/holiday → next business day
         predicted_date = (today_et + pd.offsets.BDay(1)).date()
 
     returns = data["DailyReturn"].iloc[-window_size:].values.astype(np.float32)
-    mean_fallback = float(data["DailyReturn"].mean())
-    std_fallback  = float(data["DailyReturn"].std())
-
-    return returns, predicted_date, data, mean_fallback, std_fallback
+    return returns, predicted_date, data
 
 # Load model + training normalization
 def load_model_and_stats(model_path, state_size, action_bins, device=None):
     dev = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # Safe load if supported else run as normal
     try:
         ckpt = torch.load(model_path, map_location=dev, weights_only=True)
     except TypeError:
@@ -112,15 +115,15 @@ def load_model_and_stats(model_path, state_size, action_bins, device=None):
 
 # Predict next-day return
 def predict_with_student(model_path, action_bins, label):
-    returns_window, predicted_date, _df, mean_fallback, std_fallback = get_testing_state()
+    returns_window, predicted_date, _df = get_testing_state(TICKER, WINDOW_SIZE, "60d")
     dqn, train_mean, train_std = load_model_and_stats(model_path, state_size=WINDOW_SIZE, action_bins=action_bins)
     if not (np.isnan(train_mean) or np.isnan(train_std)):
         mean = train_mean
         std = train_std if train_std > 0 else 1e-8
         norm_src = "training stats"
     else:
-        mean = mean_fallback
-        std = std_fallback + 1e-8
+        mean = returns_window.mean()
+        std = returns_window.std() + 1e-8
         norm_src = "window stats (fallback)"
     state_norm = (returns_window - mean) / std
     state_tensor = torch.from_numpy(state_norm).float().to(dqn.device).unsqueeze(0)
@@ -136,9 +139,34 @@ def predict_with_student(model_path, action_bins, label):
         "timestamp_utc": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     }
 
+# --- History helpers ---
+def ensure_history():
+    os.makedirs(DOCS_DIR, exist_ok=True)
+    if not os.path.exists(HIST_PATH):
+        pd.DataFrame(columns=["date","student","prediction_pct","actual_pct","timestamp_utc"]).to_csv(HIST_PATH, index=False)
 
-# Simple HTML using two cards
-def render_html(result_a, result_b):
+def append_predictions_for_day(res_list):
+    ensure_history()
+    hist = pd.read_csv(HIST_PATH)
+    for r in res_list:
+        # upsert by (date, student)
+        mask = (hist["date"]==r["predicted_date"]) & (hist["student"]==r["label"])
+        if mask.any():
+            hist.loc[mask, ["prediction_pct","timestamp_utc"]] = [r["prediction_pct"], r["timestamp_utc"]]
+        else:
+            hist = pd.concat([hist, pd.DataFrame([{
+                "date": r["predicted_date"],
+                "student": r["label"],
+                "prediction_pct": r["prediction_pct"],
+                "actual_pct": np.nan,
+                "timestamp_utc": r["timestamp_utc"],
+            }])], ignore_index=True)
+    hist.sort_values(["date","student"], inplace=True)
+    hist.to_csv(HIST_PATH, index=False)
+    return hist
+
+# Simple HTML using two cards + history table + chart
+def render_html(result_a, result_b, history_df):
     def card(r):
         pct = f"{r['prediction_pct']:+.2f}%"
         return f"""
@@ -148,12 +176,26 @@ def render_html(result_a, result_b):
           <div class="meta">for {r['predicted_date']} • normalized with {r['norm_source']}</div>
         </div>
         """
+    # prepare compact recent table (last 30 days)
+    h = history_df.copy()
+    h = h.sort_values("date").tail(60)
+    rows = "\n".join(
+        f"<tr><td>{d}</td><td>{s}</td><td>{float(p):+.2f}%</td><td>{'' if pd.isna(a) else f'{float(a):+.2f}%'}</td></tr>"
+        for d,s,p,a in zip(h["date"], h["student"], h["prediction_pct"], h["actual_pct"])
+    )
+    # chart data (per date average to keep it clean)
+    h_avg = h.groupby("date").agg(pred=("prediction_pct","mean"), act=("actual_pct","mean")).reset_index()
+    labels = ",".join([f"'{d}'" for d in h_avg["date"]])
+    preds  = ",".join([f"{x:.4f}" for x in h_avg["pred"].values])
+    acts   = ",".join([ "null" if pd.isna(x) else f"{x:.4f}" for x in h_avg["act"].values ])
+
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Daily EOD Return Predictions</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0f14; color:#e8eef7; margin:0; padding:2rem; }}
   h1 {{ margin:0 0 1rem 0; font-weight:700; letter-spacing:0.2px; }}
@@ -164,8 +206,10 @@ def render_html(result_a, result_b):
   .pred {{ font-size:2.2rem; font-weight:800; margin:0.5rem 0 0.25rem 0; }}
   .meta {{ opacity:0.7; font-size:0.9rem; }}
   .footer {{ opacity:0.6; font-size:0.85rem; margin-top:2rem; }}
-  a {{ color:#8cc0ff; text-decoration:none; }}
-  a:hover {{ text-decoration:underline; }}
+  table {{ width:100%; border-collapse:collapse; margin-top:2rem; }}
+  th, td {{ border-bottom:1px solid #1c2433; padding:0.5rem; text-align:left; }}
+  th {{ opacity:0.8; }}
+  .chart-wrap {{ background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1rem; margin-top:2rem; }}
 </style>
 </head>
 <body>
@@ -175,7 +219,44 @@ def render_html(result_a, result_b):
     {card(result_a)}
     {card(result_b)}
   </div>
-  <div class="footer">Runs on weekdays around 12:00 UTC (≈8am ET in summer / 7am ET in winter) via GitHub Actions.</div>
+
+  <div class="chart-wrap">
+    <canvas id="histChart" height="120"></canvas>
+  </div>
+
+  <table>
+    <thead><tr><th>Date</th><th>Student</th><th>Pred (%)</th><th>Actual (%)</th></tr></thead>
+    <tbody>
+      {rows}
+    </tbody>
+  </table>
+
+  <div class="footer">Runs on weekdays around 12:00 UTC for predictions and 23:00 UTC for actuals via GitHub Actions.</div>
+
+<script>
+const ctx = document.getElementById('histChart').getContext('2d');
+new Chart(ctx, {{
+  type: 'line',
+  data: {{
+    labels: [{labels}],
+    datasets: [
+      {{ label: 'Prediction (avg)', data: [{preds}], borderWidth: 2, tension: 0.2 }},
+      {{ label: 'Actual (avg)', data: [{acts}], borderWidth: 2, tension: 0.2 }}
+    ]
+  }},
+  options: {{
+    responsive: true,
+    scales: {{
+      y: {{
+        title: {{ display:true, text:'Return (%)' }}
+      }}
+    }},
+    plugins: {{
+      legend: {{ display: true }}
+    }}
+  }}
+}});
+</script>
 </body>
 </html>
 """
@@ -183,19 +264,23 @@ def render_html(result_a, result_b):
 def main():
     res_normal = predict_with_student(NORMAL_RES_PATH, BINS_NORMAL, "Student A — Normal Resolution (±4%, 0.5%)")
     res_finer  = predict_with_student(FINER_RES_PATH,  BINS_FINER,  "Student B — Finer Resolution (±2.5%, 0.1%)")
-    html = render_html(res_normal, res_finer)
 
-    print("\n=== Predictions ===")
-    print(f"{res_normal['label']}: {res_normal['prediction_pct']:+.2f}% for {res_normal['predicted_date']}")
-    print(f"{res_finer['label']}:  {res_finer['prediction_pct']:+.2f}% for {res_finer['predicted_date']}")
-    print(f"Normalized with: {res_normal['norm_source']} and {res_finer['norm_source']}")
-    print(f"Timestamp (UTC): {res_normal['timestamp_utc']}")
-    print("===================\n")
+    # Save predictions to history (morning job)
+    hist = append_predictions_for_day([res_normal, res_finer])
 
-    os.makedirs("docs", exist_ok=True)
-    with open(os.path.join("docs", "index.html"), "w", encoding="utf-8") as f:
+    # Render page
+    html = render_html(res_normal, res_finer, hist)
+    os.makedirs(DOCS_DIR, exist_ok=True)
+    with open(INDEX_PATH, "w", encoding="utf-8") as f:
         f.write(html)
     print("Wrote docs/index.html")
+
+    # Console summary
+    print("\n=== Predictions ===")
+    for r in [res_normal, res_finer]:
+        print(f"{r['label']}: {r['prediction_pct']:+.2f}% for {r['predicted_date']}")
+    print(f"Timestamp (UTC): {res_normal['timestamp_utc']}")
+    print("===================\n")
 
 if __name__ == "__main__":
     main()
