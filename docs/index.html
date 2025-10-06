@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Daily EOD Return Predictions</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0f14; color:#e8eef7; margin:0; padding:2rem; }
   h1 { margin:0 0 1rem 0; font-weight:700; letter-spacing:0.2px; }
@@ -14,13 +15,15 @@
   .pred { font-size:2.2rem; font-weight:800; margin:0.5rem 0 0.25rem 0; }
   .meta { opacity:0.7; font-size:0.9rem; }
   .footer { opacity:0.6; font-size:0.85rem; margin-top:2rem; }
-  a { color:#8cc0ff; text-decoration:none; }
-  a:hover { text-decoration:underline; }
+  table { width:100%; border-collapse:collapse; margin-top:2rem; }
+  th, td { border-bottom:1px solid #1c2433; padding:0.5rem; text-align:left; }
+  th { opacity:0.8; }
+  .chart-wrap { background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1rem; margin-top:2rem; }
 </style>
 </head>
 <body>
   <h1>Daily EOD Return Predictions — SPY</h1>
-  <div class="time">Last updated: 2025-10-06 07:29:20 UTC</div>
+  <div class="time">Last updated: 2025-10-06 12:44:46 UTC</div>
   <div class="grid">
     
         <div class="card">
@@ -37,6 +40,44 @@
         </div>
         
   </div>
-  <div class="footer">Runs on weekdays around 12:00 UTC (≈8am ET in summer / 7am ET in winter) via GitHub Actions.</div>
+
+  <div class="chart-wrap">
+    <canvas id="histChart" height="120"></canvas>
+  </div>
+
+  <table>
+    <thead><tr><th>Date</th><th>Student</th><th>Pred (%)</th><th>Actual (%)</th></tr></thead>
+    <tbody>
+      <tr><td>2025-10-06</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.50%</td><td></td></tr>
+<tr><td>2025-10-06</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.40%</td><td></td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer">Runs on weekdays around 12:00 UTC for predictions and 23:00 UTC for actuals via GitHub Actions.</div>
+
+<script>
+const ctx = document.getElementById('histChart').getContext('2d');
+new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: ['2025-10-06'],
+    datasets: [
+      { label: 'Prediction (avg)', data: [0.4500], borderWidth: 2, tension: 0.2 },
+      { label: 'Actual (avg)', data: [null], borderWidth: 2, tension: 0.2 }
+    ]
+  },
+  options: {
+    responsive: true,
+    scales: {
+      y: {
+        title: { display:true, text:'Return (%)' }
+      }
+    },
+    plugins: {
+      legend: { display: true }
+    }
+  }
+});
+</script>
 </body>
 </html>
