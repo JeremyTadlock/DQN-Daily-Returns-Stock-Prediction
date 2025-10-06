@@ -43,7 +43,7 @@ class DQN(nn.Module):
         return value + (advantage - advantage.mean(dim=1, keepdim=True))
 
 # Testing Data Prep
-def get_testing_state(ticker, window_size=WINDOW_SIZE, period="60d"):
+def get_testing_state(ticker=TICKER, window_size=WINDOW_SIZE, period="60d"):
     data = yf.download(ticker, period=period, auto_adjust=True, progress=False)
     if data is None or data.empty:
         raise ValueError(f"No data downloaded for ticker: {ticker}")
@@ -53,24 +53,25 @@ def get_testing_state(ticker, window_size=WINDOW_SIZE, period="60d"):
 
     if len(data) < window_size:
         raise ValueError(f"Not enough data to form a {window_size}-day window; got {len(data)} rows.")
-
+    
     # predicted_date selection (US/Eastern)
     last_complete_date = pd.Timestamp(data.index[-1]).tz_localize(None)  # trading day from dataset
     now_et = pd.Timestamp.now(tz="America/New_York")
     today_et = now_et.normalize().tz_localize(None)
 
     if today_et.weekday() < 5:  # Mon–Fri
-        # If the dataset already shows today's date (time-zone quirks), predict for TODAY only once.
         if last_complete_date >= today_et:
             predicted_date = (last_complete_date + pd.offsets.BDay(1)).date()
         else:
             predicted_date = today_et.date()
     else:
-        # Weekend/holiday → next business day
         predicted_date = (today_et + pd.offsets.BDay(1)).date()
 
     returns = data["DailyReturn"].iloc[-window_size:].values.astype(np.float32)
-    return returns, predicted_date, data
+    mean_fallback = float(data["DailyReturn"].mean())
+    std_fallback  = float(data["DailyReturn"].std())
+
+    return returns, predicted_date, data, mean_fallback, std_fallback
 
 # Load model + training normalization
 def load_model_and_stats(model_path, state_size, action_bins, device=None):
@@ -183,6 +184,13 @@ def main():
     res_normal = predict_with_student(NORMAL_RES_PATH, BINS_NORMAL, "Student A — Normal Resolution (±4%, 0.5%)")
     res_finer  = predict_with_student(FINER_RES_PATH,  BINS_FINER,  "Student B — Finer Resolution (±2.5%, 0.1%)")
     html = render_html(res_normal, res_finer)
+
+    print("\n=== Predictions ===")
+    print(f"{res_normal['label']}: {res_normal['prediction_pct']:+.2f}% for {res_normal['predicted_date']}")
+    print(f"{res_finer['label']}:  {res_finer['prediction_pct']:+.2f}% for {res_finer['predicted_date']}")
+    print(f"Normalized with: {res_normal['norm_source']} and {res_finer['norm_source']}")
+    print(f"Timestamp (UTC): {res_normal['timestamp_utc']}")
+    print("===================\n")
 
     os.makedirs("docs", exist_ok=True)
     with open(os.path.join("docs", "index.html"), "w", encoding="utf-8") as f:

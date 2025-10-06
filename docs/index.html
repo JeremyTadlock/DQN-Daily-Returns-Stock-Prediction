@@ -1,60 +1,42 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DQN Daily Returns Stock Prediction</title>
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f6f8fa;
-      margin: 0;
-      padding: 2rem;
-      color: #333;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .card {
-      background: #fff;
-      padding: 1.5rem;
-      border-radius: 1rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      max-width: 400px;
-      margin: 1rem auto;
-      text-align: center;
-    }
-    .model-name {
-      font-size: 1.2rem;
-      font-weight: 600;
-    }
-    .prediction {
-      font-size: 2rem;
-      color: #0074d9;
-      margin: 0.5rem 0;
-    }
-    .date {
-      color: #777;
-      font-size: 0.9rem;
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Daily EOD Return Predictions</title>
+<style>
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0f14; color:#e8eef7; margin:0; padding:2rem; }
+  h1 { margin:0 0 1rem 0; font-weight:700; letter-spacing:0.2px; }
+  .time { opacity:0.7; margin-bottom:2rem; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; }
+  .card { background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1.25rem; box-shadow:0 6px 24px rgba(0,0,0,0.25); }
+  .title { font-size:0.95rem; opacity:0.9; margin-bottom:0.25rem; }
+  .pred { font-size:2.2rem; font-weight:800; margin:0.5rem 0 0.25rem 0; }
+  .meta { opacity:0.7; font-size:0.9rem; }
+  .footer { opacity:0.6; font-size:0.85rem; margin-top:2rem; }
+  a { color:#8cc0ff; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+</style>
 </head>
 <body>
-  <h1>📈 DQN Daily Return Predictions</h1>
-  
-  <div class="card">
-    <div class="model-name">Normal-Res Student</div>
-    <div class="prediction">+0.42%</div>
-    <div class="date">Prediction for 2025-10-07</div>
+  <h1>Daily EOD Return Predictions — SPY</h1>
+  <div class="time">Last updated: 2025-10-06 07:29:20 UTC</div>
+  <div class="grid">
+    
+        <div class="card">
+          <div class="title">Student A — Normal Resolution (±4%, 0.5%)</div>
+          <div class="pred">+0.50%</div>
+          <div class="meta">for 2025-10-06 • normalized with training stats</div>
+        </div>
+        
+    
+        <div class="card">
+          <div class="title">Student B — Finer Resolution (±2.5%, 0.1%)</div>
+          <div class="pred">+0.40%</div>
+          <div class="meta">for 2025-10-06 • normalized with training stats</div>
+        </div>
+        
   </div>
-
-  <div class="card">
-    <div class="model-name">Finer-Res Student</div>
-    <div class="prediction">+0.31%</div>
-    <div class="date">Prediction for 2025-10-07</div>
-  </div>
-
-  <p style="text-align:center;color:#999;font-size:0.8rem;">Last updated automatically each weekday at 7 AM EST.</p>
+  <div class="footer">Runs on weekdays around 12:00 UTC (≈8am ET in summer / 7am ET in winter) via GitHub Actions.</div>
 </body>
 </html>
