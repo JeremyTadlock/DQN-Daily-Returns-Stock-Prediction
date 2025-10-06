@@ -43,18 +43,34 @@ class DQN(nn.Module):
         return value + (advantage - advantage.mean(dim=1, keepdim=True))
 
 # Testing Data Prep
-def get_testing_state(ticker=TICKER, window_size=WINDOW_SIZE, period="60d"):
+def get_testing_state(ticker, window_size=WINDOW_SIZE, period="60d"):
     data = yf.download(ticker, period=period, auto_adjust=True, progress=False)
     if data is None or data.empty:
         raise ValueError(f"No data downloaded for ticker: {ticker}")
+
     data["DailyReturn"] = data["Close"].pct_change() * 100.0
     data.dropna(inplace=True)
+
     if len(data) < window_size:
-        raise ValueError(f"Not enough data for a {window_size}-day window; got {len(data)} rows.")
-    last_complete_date = data.index[-1]
-    predicted_date = (last_complete_date + pd.offsets.BDay(1)).date()
+        raise ValueError(f"Not enough data to form a {window_size}-day window; got {len(data)} rows.")
+
+    # predicted_date selection (US/Eastern)
+    last_complete_date = pd.Timestamp(data.index[-1]).tz_localize(None)  # trading day from dataset
+    now_et = pd.Timestamp.now(tz="America/New_York")
+    today_et = now_et.normalize().tz_localize(None)
+
+    if today_et.weekday() < 5:  # Mon–Fri
+        # If the dataset already shows today's date (time-zone quirks), predict for TODAY only once.
+        if last_complete_date >= today_et:
+            predicted_date = (last_complete_date + pd.offsets.BDay(1)).date()
+        else:
+            predicted_date = today_et.date()
+    else:
+        # Weekend/holiday → next business day
+        predicted_date = (today_et + pd.offsets.BDay(1)).date()
+
     returns = data["DailyReturn"].iloc[-window_size:].values.astype(np.float32)
-    return returns, predicted_date, data, data["DailyReturn"].mean(), data["DailyReturn"].std()
+    return returns, predicted_date, data
 
 # Load model + training normalization
 def load_model_and_stats(model_path, state_size, action_bins, device=None):

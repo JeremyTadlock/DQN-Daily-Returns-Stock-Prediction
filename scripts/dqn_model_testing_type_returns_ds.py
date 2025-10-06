@@ -5,9 +5,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 
-# --------------------
 # Config (match training!)
-# --------------------
 model_path = "trained_dqn_predict_daily_return_3yrs_2_finer_res.pth"
 
 normal_res_student = "trained_dqn_predict_daily_return_3yrs_2.pth"
@@ -25,9 +23,7 @@ else:
 
 WINDOW_SIZE = 25
 
-# --------------------
 # DQN Network (same as training, but optimizer unused)
-# --------------------
 class DQN(nn.Module):
     def __init__(self, state_size, action_size, learning_rate=0.001, device=None, verbose=False, is_target=False):
         super(DQN, self).__init__()
@@ -60,9 +56,7 @@ class DQN(nn.Module):
         q_values = value + (advantage - advantage.mean(dim=1, keepdim=True))
         return q_values
 
-# --------------------
 # Testing Data Prep
-# --------------------
 def get_testing_state(ticker, window_size=WINDOW_SIZE, period="60d"):
     """
     Returns:
@@ -89,9 +83,7 @@ def get_testing_state(ticker, window_size=WINDOW_SIZE, period="60d"):
 
     return returns, predicted_date, data
 
-# --------------------
 # Load model + training normalization  (ROBUST VERSION)
-# --------------------
 def load_model_and_stats(model_path, state_size, device=None):
     dev = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -140,9 +132,7 @@ def load_model_and_stats(model_path, state_size, device=None):
 
     return dqn, train_mean, train_std
 
-# --------------------
 # Predict next-day return
-# --------------------
 def predict_next_return(ticker="SPY", model_path="trained_dqn_predict_daily_return_3yrs.pth",
                         window_size=WINDOW_SIZE, period="60d"):
     # Load model and train stats (action size inferred from checkpoint)
@@ -178,9 +168,8 @@ def predict_next_return(ticker="SPY", model_path="trained_dqn_predict_daily_retu
         "raw_df": data
     }
 
-# --------------------
+
 # Run
-# --------------------
 if __name__ == "__main__":
     ticker = "SPY"
 
