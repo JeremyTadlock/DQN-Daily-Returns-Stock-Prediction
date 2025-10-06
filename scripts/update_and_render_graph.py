@@ -19,7 +19,7 @@ def render_html_cards_from_latest(hist: pd.DataFrame):
     last_date = hist["date"].max()
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     subset = hist[hist["date"]==last_date].sort_values("student")
-    # choose two students deterministically
+    # choose two students
     if len(subset) >= 1:
         a = subset.iloc[0]
         card_a = {
@@ -45,7 +45,6 @@ def render_html_cards_from_latest(hist: pd.DataFrame):
     return card_a, card_b, ts
 
 def render_full_page(card_a, card_b, history_df):
-    # (same HTML styles as morning script)
     def card(r):
         pct = f"{r['prediction_pct']:+.2f}%"
         return f"""
@@ -61,11 +60,23 @@ def render_full_page(card_a, card_b, history_df):
         f"<tr><td>{d}</td><td>{s}</td><td>{float(p):+.2f}%</td><td>{'' if pd.isna(a) else f'{float(a):+.2f}%'}</td></tr>"
         for d,s,p,a in zip(h["date"], h["student"], h["prediction_pct"], h["actual_pct"])
     )
-    # chart
-    h_avg = h.groupby("date").agg(pred=("prediction_pct","mean"), act=("actual_pct","mean")).reset_index()
-    labels = ",".join([f"'{d}'" for d in h_avg["date"]])
-    preds  = ",".join([f"{x:.4f}" for x in h_avg["pred"].values])
-    acts   = ",".join([ "null" if pd.isna(x) else f"{x:.4f}" for x in h_avg["act"].values ])
+
+    # Split by student for separate chart lines
+    hA = h[h["student"].str.contains("Normal", na=False)]
+    hB = h[h["student"].str.contains("Finer", na=False)]
+    hAct = h.groupby("date")["actual_pct"].mean().reset_index()
+
+    labels = ",".join([f"'{d}'" for d in sorted(set(h["date"]))])
+    def make_series(df):
+        vals = []
+        for d in sorted(set(h["date"])):
+            m = df[df["date"] == d]
+            vals.append(f"{float(m['prediction_pct'].iloc[0]):.4f}" if not m.empty else "null")
+        return ",".join(vals)
+    predsA = make_series(hA)
+    predsB = make_series(hB)
+    acts = ",".join(["null" if pd.isna(x) else f"{x:.4f}" for x in hAct["actual_pct"].values])
+
     return f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
@@ -116,8 +127,9 @@ new Chart(ctx, {{
   data: {{
     labels: [{labels}],
     datasets: [
-      {{ label: 'Prediction (avg)', data: [{preds}], borderWidth: 2, tension: 0.2 }},
-      {{ label: 'Actual (avg)', data: [{acts}], borderWidth: 2, tension: 0.2 }}
+      {{ label: 'Student A — Normal', data: [{predsA}], borderWidth: 2, tension: 0.2 }},
+      {{ label: 'Student B — Finer', data: [{predsB}], borderWidth: 2, tension: 0.2 }},
+      {{ label: 'Actual', data: [{acts}], borderDash: [6,4], borderWidth: 2, tension: 0.2 }}
     ]
   }},
   options: {{
@@ -136,7 +148,7 @@ def fetch_actual_for_date(date_str: str) -> float | None:
     """
     Close-to-close % return for that US/Eastern date, in percent units.
     """
-    # Pull a small window around the date to be safe
+    # pull small window around date to be safe
     df = yf.download(TICKER, period="10d", auto_adjust=True, progress=False)
     if df is None or df.empty:
         return None
@@ -158,7 +170,7 @@ def main():
         print("Empty history.csv, nothing to update.")
         return
 
-    # For each date with any NaN actual, fill it once (same actual applies to all students)
+    # Foreach date with any NaN actual, fill it once, although this should never need to be used
     for date_str in sorted(hist["date"].unique()):
         needs = hist[(hist["date"]==date_str) & (hist["actual_pct"].isna())]
         if needs.empty:

@@ -183,11 +183,22 @@ def render_html(result_a, result_b, history_df):
         f"<tr><td>{d}</td><td>{s}</td><td>{float(p):+.2f}%</td><td>{'' if pd.isna(a) else f'{float(a):+.2f}%'}</td></tr>"
         for d,s,p,a in zip(h["date"], h["student"], h["prediction_pct"], h["actual_pct"])
     )
-    # chart data (per date average to keep it clean)
-    h_avg = h.groupby("date").agg(pred=("prediction_pct","mean"), act=("actual_pct","mean")).reset_index()
-    labels = ",".join([f"'{d}'" for d in h_avg["date"]])
-    preds  = ",".join([f"{x:.4f}" for x in h_avg["pred"].values])
-    acts   = ",".join([ "null" if pd.isna(x) else f"{x:.4f}" for x in h_avg["act"].values ])
+
+    # Split by student for separate chart lines
+    hA = h[h["student"].str.contains("Normal", na=False)]
+    hB = h[h["student"].str.contains("Finer", na=False)]
+    hAct = h.groupby("date")["actual_pct"].mean().reset_index()
+
+    labels = ",".join([f"'{d}'" for d in sorted(set(h["date"]))])
+    def make_series(df):
+        vals = []
+        for d in sorted(set(h["date"])):
+            m = df[df["date"] == d]
+            vals.append(f"{float(m['prediction_pct'].iloc[0]):.4f}" if not m.empty else "null")
+        return ",".join(vals)
+    predsA = make_series(hA)
+    predsB = make_series(hB)
+    acts = ",".join(["null" if pd.isna(x) else f"{x:.4f}" for x in hAct["actual_pct"].values])
 
     return f"""<!doctype html>
 <html lang="en">
@@ -240,8 +251,9 @@ new Chart(ctx, {{
   data: {{
     labels: [{labels}],
     datasets: [
-      {{ label: 'Prediction (avg)', data: [{preds}], borderWidth: 2, tension: 0.2 }},
-      {{ label: 'Actual (avg)', data: [{acts}], borderWidth: 2, tension: 0.2 }}
+      {{ label: 'Student A — Normal', data: [{predsA}], borderWidth: 2, tension: 0.2 }},
+      {{ label: 'Student B — Finer', data: [{predsB}], borderWidth: 2, tension: 0.2 }},
+      {{ label: 'Actual', data: [{acts}], borderDash: [6,4], borderWidth: 2, tension: 0.2 }}
     ]
   }},
   options: {{
