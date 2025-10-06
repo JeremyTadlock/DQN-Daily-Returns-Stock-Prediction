@@ -170,7 +170,7 @@ def main():
         print("Empty history.csv, nothing to update.")
         return
 
-    # Foreach date with any NaN actual, fill it once, although this should never need to be used
+    # Foreach date with any NaN actual, fetch and fill those vals.
     for date_str in sorted(hist["date"].unique()):
         needs = hist[(hist["date"]==date_str) & (hist["actual_pct"].isna())]
         if needs.empty:

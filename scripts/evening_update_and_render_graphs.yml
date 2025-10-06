@@ -3,7 +3,7 @@ name: evening_update_and_render_graph
 on:
   schedule:
     # Weekdays at 22:30 UTC (6:30pm EDT / 5:30pm EST) after market close
-    - cron: "30 22 * * 1-5
+    - cron: "0 1 * * 2-6"
   workflow_dispatch: {}
 
 permissions:
