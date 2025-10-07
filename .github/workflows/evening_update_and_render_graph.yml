@@ -2,9 +2,15 @@ name: evening_update_and_render_graph
 
 on:
   schedule:
-    # Weekdays at 22:30 UTC (6:30pm EDT / 5:30pm EST) after market close
+    # 01:00 UTC Tue–Sat (covers Mon–Fri US market days)
     - cron: "0 1 * * 2-6"
-  workflow_dispatch: {}
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/evening_update_and_render_graph.yml"
+      - "scripts/update_and_render_graph.py"
+      - "docs/index.html"
+      - "docs/history.csv"
 
 permissions:
   contents: write
