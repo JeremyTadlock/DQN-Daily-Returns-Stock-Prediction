@@ -4,10 +4,18 @@ import numpy as np
 import pandas as pd
 import yfinance as yf
 
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../repo
+
 DOCS_DIR = "docs"
 HIST_PATH = os.path.join(DOCS_DIR, "history.csv")
 INDEX_PATH = os.path.join(DOCS_DIR, "index.html")
 TICKER = "SPY"
+
+# Specific paths
+DOCS_DIR = os.path.join(BASE_DIR, DOCS_DIR)
+HIST_PATH = os.path.join(BASE_DIR, HIST_PATH)
+INDEX_PATH = os.path.join(BASE_DIR, INDEX_PATH)
 
 # Quick re-render uses the latest predictions rows to fill cards
 def render_html_cards_from_latest(hist: pd.DataFrame):
