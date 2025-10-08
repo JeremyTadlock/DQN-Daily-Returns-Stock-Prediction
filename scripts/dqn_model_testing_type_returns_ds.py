@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 
 # Config (match training!)
-model_path = "trained_dqn_predict_daily_return_3yrs_2_finer_res.pth"
+model_path = "trained_dqn_predict_daily_return_3yrs_2.pth"
 
 normal_res_student = "trained_dqn_predict_daily_return_3yrs_2.pth"
 higher_res_student = "trained_dqn_predict_daily_return_3yrs_2_finer_res.pth"

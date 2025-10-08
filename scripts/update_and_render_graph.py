@@ -14,37 +14,43 @@ def render_html_cards_from_latest(hist: pd.DataFrame):
     # latest date in history
     if hist.empty:
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        return ("No predictions yet", "No predictions yet", ts)
+        card_a = {"label":"Student A — Normal Resolution (±4%, 0.5%)",
+                  "predicted_date":"—","prediction_pct":0.0,"norm_source":"", "timestamp_utc":ts}
+        card_b = {"label":"Student B — Finer Resolution (±2.5%, 0.1%)",
+                  "predicted_date":"—","prediction_pct":0.0,"norm_source":"", "timestamp_utc":ts}
+        return card_a, card_b, ts
 
     last_date = hist["date"].max()
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     subset = hist[hist["date"]==last_date].sort_values("student")
-    # choose two students
-    if len(subset) >= 1:
-        a = subset.iloc[0]
-        card_a = {
-            "label": a["student"],
-            "predicted_date": a["date"],
-            "prediction_pct": float(a["prediction_pct"]),
+
+    # try to pick the two expected students by name if not fall back to first two
+    a_row = subset[subset["student"].str.contains("Normal", na=False)].head(1)
+    b_row = subset[subset["student"].str.contains("Finer", na=False)].head(1)
+    if a_row.empty and not subset.empty:
+        a_row = subset.iloc[[0]]
+    if b_row.empty and len(subset) >= 2:
+        b_row = subset.iloc[[1]]
+
+    def mk_card(row, fallback_label):
+        if row.empty:
+            return {"label": fallback_label, "predicted_date": last_date,
+                    "prediction_pct": 0.0, "norm_source": "", "timestamp_utc": ts}
+        r = row.iloc[0]
+        return {
+            "label": r["student"],
+            "predicted_date": r["date"],
+            "prediction_pct": float(r["prediction_pct"]),
             "norm_source": "training stats",
             "timestamp_utc": ts
         }
-    else:
-        card_a = {"label":"Student A","predicted_date":last_date,"prediction_pct":0.0,"norm_source":"", "timestamp_utc":ts}
-    if len(subset) >= 2:
-        b = subset.iloc[1]
-        card_b = {
-            "label": b["student"],
-            "predicted_date": b["date"],
-            "prediction_pct": float(b["prediction_pct"]),
-            "norm_source": "training stats",
-            "timestamp_utc": ts
-        }
-    else:
-        card_b = {"label":"Student B","predicted_date":last_date,"prediction_pct":0.0,"norm_source":"", "timestamp_utc":ts}
+
+    card_a = mk_card(a_row, "Student A — Normal Resolution (±4%, 0.5%)")
+    card_b = mk_card(b_row, "Student B — Finer Resolution (±2.5%, 0.1%)")
     return card_a, card_b, ts
 
 def render_full_page(card_a, card_b, history_df):
+    # (same HTML styles as morning script)
     def card(r):
         pct = f"{r['prediction_pct']:+.2f}%"
         return f"""
@@ -62,20 +68,30 @@ def render_full_page(card_a, card_b, history_df):
     )
 
     # Split by student for separate chart lines
+    all_dates = sorted(set(h["date"]))
     hA = h[h["student"].str.contains("Normal", na=False)]
     hB = h[h["student"].str.contains("Finer", na=False)]
-    hAct = h.groupby("date")["actual_pct"].mean().reset_index()
+    hAct = h.groupby("date", as_index=False)["actual_pct"].mean()
 
-    labels = ",".join([f"'{d}'" for d in sorted(set(h["date"]))])
+    labels = ",".join([f"'{d}'" for d in all_dates])
+
     def make_series(df):
-        vals = []
-        for d in sorted(set(h["date"])):
-            m = df[df["date"] == d]
-            vals.append(f"{float(m['prediction_pct'].iloc[0]):.4f}" if not m.empty else "null")
-        return ",".join(vals)
+        m = df.set_index("date")["prediction_pct"] if "prediction_pct" in df.columns else df.set_index("date")["actual_pct"]
+        out = []
+        for d in all_dates:
+            if d in m.index:
+                val = m.loc[d]
+                if pd.isna(val):
+                    out.append("null")
+                else:
+                    out.append(f"{float(val):.4f}")
+            else:
+                out.append("null")
+        return ",".join(out)
+
     predsA = make_series(hA)
     predsB = make_series(hB)
-    acts = ",".join(["null" if pd.isna(x) else f"{x:.4f}" for x in hAct["actual_pct"].values])
+    acts   = make_series(hAct.rename(columns={"actual_pct":"prediction_pct"}))  # reuse helper
 
     return f"""<!doctype html>
 <html lang="en"><head>
@@ -128,7 +144,7 @@ new Chart(ctx, {{
     labels: [{labels}],
     datasets: [
       {{ label: 'Student A — Normal', data: [{predsA}], borderWidth: 2, tension: 0.2 }},
-      {{ label: 'Student B — Finer', data: [{predsB}], borderWidth: 2, tension: 0.2 }},
+      {{ label: 'Student B — Finer',  data: [{predsB}], borderWidth: 2, tension: 0.2 }},
       {{ label: 'Actual', data: [{acts}], borderDash: [6,4], borderWidth: 2, tension: 0.2 }}
     ]
   }},
@@ -148,13 +164,13 @@ def fetch_actual_for_date(date_str: str) -> float | None:
     """
     Close-to-close % return for that US/Eastern date, in percent units.
     """
-    # pull small window around date to be safe
+    # pull a small window around the date to be safe
     df = yf.download(TICKER, period="10d", auto_adjust=True, progress=False)
     if df is None or df.empty:
         return None
     df["DailyReturn"] = df["Close"].pct_change() * 100.0
-    df = df.dropna()
-    # Match by date string
+    df = df.dropna() 
+
     df_idx_dates = df.index.tz_localize(None).date
     mask = np.array([str(d) == date_str for d in df_idx_dates])
     if mask.any():
