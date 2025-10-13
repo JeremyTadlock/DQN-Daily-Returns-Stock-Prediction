@@ -17,6 +17,51 @@ DOCS_DIR = os.path.join(BASE_DIR, DOCS_DIR)
 HIST_PATH = os.path.join(BASE_DIR, HIST_PATH)
 INDEX_PATH = os.path.join(BASE_DIR, INDEX_PATH)
 
+# News helpers
+NEWS_PATH = os.path.join(DOCS_DIR, "news.csv")
+
+def ensure_news_csv():
+    # Create docs/news.csv if missing.
+    os.makedirs(DOCS_DIR, exist_ok=True)
+    if not os.path.exists(NEWS_PATH):
+        pd.DataFrame(columns=["date", "rank", "title", "link", "publisher"]).to_csv(NEWS_PATH, index=False)
+
+def today_et_str():
+    # Get today's date
+    return pd.Timestamp.now(tz="America/New_York").normalize().date().isoformat()
+
+def fetch_top3_news_today():
+
+    # Pull the current top 3 news articles from Yahoo Finance news
+    try:
+        tk = yf.Ticker(TICKER)
+        items = tk.news or []
+    except Exception:
+        items = []
+    out = []
+    for i, it in enumerate(items[:3], start=1):
+        title = it.get("title") or ""
+        link = it.get("link") or ""
+        pub  = (it.get("publisher") or "")[:128]
+        if title and link:
+            out.append({"rank": i, "title": title, "link": link, "publisher": pub})
+    return out
+
+def append_today_news_if_missing():
+    # Only write news for today. only write to csv if news for today hasnt been filled in.
+    ensure_news_csv()
+    df = pd.read_csv(NEWS_PATH)
+    d = today_et_str()
+    if (df["date"] == d).any():
+        return False  # News is already filled
+    top3 = fetch_top3_news_today()
+    if not top3:
+        return False
+    rows = [{"date": d, **row} for row in top3]
+    df = pd.concat([df, pd.DataFrame(rows)], ignore_index=True)
+    df.to_csv(NEWS_PATH, index=False)
+    return True
+
 # Quick re-render uses the latest predictions rows to fill cards
 def render_html_cards_from_latest(hist: pd.DataFrame):
     # latest date in history
@@ -209,6 +254,15 @@ def main():
     hist.sort_values(["date","student"], inplace=True)
     os.makedirs(DOCS_DIR, exist_ok=True)
     hist.to_csv(HIST_PATH, index=False)
+
+    # Update news on graph for today's date if it hasn't been done already.
+    try:
+        if append_today_news_if_missing():
+            print(f"Saved today's news for {today_et_str()}.")
+        else:
+            print("No new today's news to save.")
+    except Exception as e:
+        print("News step skipped due to error:", e)
 
     # Re-render the page with latest cards + updated history
     card_a, card_b, _ = render_html_cards_from_latest(hist)
