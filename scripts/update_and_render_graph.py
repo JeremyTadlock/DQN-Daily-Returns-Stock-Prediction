@@ -4,11 +4,11 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import yfinance as yf
-
-# NEW: imports for scraping
+from string import Template
 import requests
 from bs4 import BeautifulSoup
 
+# Paths / constants
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../repo
 
 DOCS_DIR = "docs"
@@ -21,11 +21,9 @@ DOCS_DIR = os.path.join(BASE_DIR, DOCS_DIR)
 HIST_PATH = os.path.join(BASE_DIR, HIST_PATH)
 INDEX_PATH = os.path.join(BASE_DIR, INDEX_PATH)
 
-# News helpers
 NEWS_PATH = os.path.join(DOCS_DIR, "news.csv")
 
-# --- Scraper config/helpers ---------------------------------------------------
-
+# Scraper (Yahoo Finance homepage lead + related)
 YF_HOME = "https://finance.yahoo.com/"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -42,30 +40,19 @@ def _extract_title_and_link(a_tag):
     href = a_tag.get("href", "")
     if href.startswith("/"):
         href = "https://finance.yahoo.com" + href
-    # Only keep real Yahoo Finance news articles (incl. live blog)
     if "https://finance.yahoo.com/news/" not in href:
         return None
-
     title = a_tag.get("title")
     if not title:
-        # Try <h2 data-testid="title">, then generic <h2>/<h3>, then link text
         h = a_tag.select_one('[data-testid="title"], h2, h3')
         title = h.get_text(strip=True) if h else a_tag.get_text(strip=True)
-
     title = _clean_text(title)
     if not title:
         return None
-
     return {"title": title, "link": href}
 
 def get_yahoo_home_top3():
-    """
-    Scrape the Yahoo Finance homepage hero block:
-    Lead story (data-testid="hero-lead-story")
-    First two 'hero-related' items
-
-    Returns  [title, link, publisher]
-    """
+    # Scrape the hero lead + two related stories from Yahoo Finance homepage.
     try:
         with requests.Session() as s:
             r = s.get(YF_HOME, headers=HEADERS, timeout=12)
@@ -73,7 +60,6 @@ def get_yahoo_home_top3():
             soup = BeautifulSoup(r.text, "lxml")
 
         results = []
-
         # Lead story
         lead_block = soup.select_one('[data-testid="hero-lead-story"]')
         if lead_block:
@@ -102,31 +88,21 @@ def get_yahoo_home_top3():
                 deduped.append(x)
 
         return deduped[:3]
-
     except Exception as e:
-        # If something odd happens (e.g., consent shell), just fall back later
         print("Yahoo home scrape failed:", e)
         return []
 
-
+# News helpers
 def ensure_news_csv():
-    # Create docs/news.csv if missing.
     os.makedirs(DOCS_DIR, exist_ok=True)
     if not os.path.exists(NEWS_PATH):
         pd.DataFrame(columns=["date", "rank", "title", "link", "publisher"]).to_csv(NEWS_PATH, index=False)
 
 def today_et_str():
-    # Get today's date
     return pd.Timestamp.now(tz="America/New_York").normalize().date().isoformat()
 
 def fetch_top3_news_today():
-    """
-    Return up to 3 items: [rank, title, link, publisher] for today's page view.
-
-      Try Yahoo Finance homepage (lead + related)
-      ...If empty/not working, use yfinance.Ticker(SPY).news and grab 3
-    """
-    # 1) Preferred: homepage scrape (lead + 2 related)
+    # Preferred: homepage scrape
     items = get_yahoo_home_top3()
     if items:
         out = []
@@ -139,13 +115,12 @@ def fetch_top3_news_today():
             })
         return out
 
-    # 2) Fallback: yfinance (sometimes returns empty)
+    # Fallback: yfinance news
     try:
         tk = yf.Ticker(TICKER)
         news = tk.news or []
     except Exception:
         news = []
-
     out = []
     for i, it in enumerate(news[:3], start=1):
         title = it.get("title") or ""
@@ -156,12 +131,11 @@ def fetch_top3_news_today():
     return out
 
 def append_today_news_if_missing():
-    # Only write news for today. only write to csv if news for today hasnt been filled in.
     ensure_news_csv()
     df = pd.read_csv(NEWS_PATH)
     d = today_et_str()
     if (df["date"] == d).any():
-        return False  # News is already filled
+        return False
     top3 = fetch_top3_news_today()
     if not top3:
         return False
@@ -170,9 +144,8 @@ def append_today_news_if_missing():
     df.to_csv(NEWS_PATH, index=False)
     return True
 
-# Quick re-render uses the latest predictions rows to fill cards
+# Rendering helpers
 def render_html_cards_from_latest(hist: pd.DataFrame):
-    # latest date in history
     if hist.empty:
         ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         card_a = {"label":"Student A — Normal Resolution (±4%, 0.5%)",
@@ -185,7 +158,6 @@ def render_html_cards_from_latest(hist: pd.DataFrame):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     subset = hist[hist["date"]==last_date].sort_values("student")
 
-    # try to pick the two expected students by name if not fall back to first two
     a_row = subset[subset["student"].str.contains("Normal", na=False)].head(1)
     b_row = subset[subset["student"].str.contains("Finer", na=False)].head(1)
     if a_row.empty and not subset.empty:
@@ -210,18 +182,13 @@ def render_html_cards_from_latest(hist: pd.DataFrame):
     card_b = mk_card(b_row, "Student B — Finer Resolution (±2.5%, 0.1%)")
     return card_a, card_b, ts
 
+# News map to JS
 def build_news_map_for_js(news_df: pd.DataFrame) -> str:
-    """
-    Build {date: [{title, link}...]} sorted by rank asc, for embedding in JS.
-    Returns a JSON string safe to inline.
-    """
     if news_df is None or news_df.empty:
         return "{}"
-    # grab needed columns
     cols = {"date", "rank", "title", "link"}
     have = [c for c in news_df.columns if c in cols]
     df = news_df[have].copy()
-    # order by date then rank
     if "rank" in df.columns:
         df = df.sort_values(["date", "rank"])
     else:
@@ -238,8 +205,8 @@ def build_news_map_for_js(news_df: pd.DataFrame) -> str:
             news_map[d] = items[:3]
     return json.dumps(news_map, ensure_ascii=False)
 
+# Full HTML render 
 def render_full_page(card_a, card_b, history_df, news_df):
-
     news_map_json = build_news_map_for_js(news_df)
 
     def card(r):
@@ -251,20 +218,19 @@ def render_full_page(card_a, card_b, history_df, news_df):
           <div class="meta">for {r['predicted_date']} • (cards from latest entries)</div>
         </div>
         """
+
     h = history_df.copy()
     h = h.sort_values("date").tail(60)
-    rows = "\n".join(
+    rows_html = "\n".join(
         f"<tr><td>{d}</td><td>{s}</td><td>{float(p):+.2f}%</td><td>{'' if pd.isna(a) else f'{float(a):+.2f}%'}</td></tr>"
-        for d,s,p,a in zip(h["date"], h["student"], h["prediction_pct"], h["actual_pct"])
+        for d, s, p, a in zip(h["date"], h["student"], h["prediction_pct"], h["actual_pct"])
     )
 
-    # Split by student for separate chart lines
+    # series
     all_dates = sorted(set(h["date"]))
     hA = h[h["student"].str.contains("Normal", na=False)]
     hB = h[h["student"].str.contains("Finer", na=False)]
     hAct = h.groupby("date", as_index=False)["actual_pct"].mean()
-
-    labels = ",".join([f"'{d}'" for d in all_dates])
 
     def make_series(df):
         m = df.set_index("date")["prediction_pct"] if "prediction_pct" in df.columns else df.set_index("date")["actual_pct"]
@@ -272,203 +238,290 @@ def render_full_page(card_a, card_b, history_df, news_df):
         for d in all_dates:
             if d in m.index:
                 val = m.loc[d]
-                if pd.isna(val):
-                    out.append("null")
-                else:
-                    out.append(f"{float(val):.4f}")
+                out.append("null" if pd.isna(val) else f"{float(val):.4f}")
             else:
                 out.append("null")
         return ",".join(out)
 
-    predsA = make_series(hA)
-    predsB = make_series(hB)
-    acts   = make_series(hAct.rename(columns={"actual_pct":"prediction_pct"}))  # reuse helper
+    labels_js = ",".join([f"'{d}'" for d in all_dates])
+    predsA_js = make_series(hA)
+    predsB_js = make_series(hB)
+    acts_js   = make_series(hAct.rename(columns={"actual_pct": "prediction_pct"}))
 
-    return f"""<!doctype html>
+    # colors
+    colorA = "#4cc9f0"
+    colorB = "#f72585"
+    colorAct = "#e2e8f0"
+    gridCol = "rgba(226, 232, 240, 0.12)"
+    tickCol = "rgba(226, 232, 240, 0.75)"
+
+    html_template = Template(r"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Daily EOD Return Predictions</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body {{ font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0f14; color:#e8eef7; margin:0; padding:2rem; }}
-  h1 {{ margin:0 0 1rem 0; font-weight:700; letter-spacing:0.2px; }}
-  .time {{ opacity:0.7; margin-bottom:2rem; }}
-  .grid {{ display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; }}
-  .card {{ background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1.25rem; box-shadow:0 6px 24px rgba(0,0,0,0.25); }}
-  .title {{ font-size:0.95rem; opacity:0.9; margin-bottom:0.25rem; }}
-  .pred {{ font-size:2.2rem; font-weight:800; margin:0.5rem 0 0.25rem 0; }}
-  .meta {{ opacity:0.7; font-size:0.9rem; }}
-  .footer {{ opacity:0.6; font-size:0.85rem; margin-top:2rem; }}
-  table {{ width:100%; border-collapse:collapse; margin-top:2rem; }}
-  th, td {{ border-bottom:1px solid #1c2433; padding:0.5rem; text-align:left; }}
-  th {{ opacity:0.8; }}
-  .chart-wrap {{ background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1rem; margin-top:2rem; position: relative; }}
-
-  /* Clickable external tooltip */
-  #newsTooltip {{
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0f14; color:#e8eef7; margin:0; padding:2rem; }
+  h1 { margin:0 0 1rem 0; font-weight:700; letter-spacing:0.2px; }
+  .time { opacity:0.7; margin-bottom:2rem; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; }
+  .card { background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1.25rem; box-shadow:0 6px 24px rgba(0,0,0,0.25); }
+  .title { font-size:0.95rem; opacity:0.9; margin-bottom:0.25rem; }
+  .pred { font-size:2.2rem; font-weight:800; margin:0.5rem 0 0.25rem 0; }
+  .meta { opacity:0.7; font-size:0.9rem; }
+  .footer { opacity:0.6; font-size:0.85rem; margin-top:2rem; }
+  table { width:100%; border-collapse:collapse; margin-top:2rem; }
+  th, td { border-bottom:1px solid #1c2433; padding:0.5rem; text-align:left; }
+  th { opacity:0.8; }
+  .chart-wrap { background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1rem; margin-top:2rem; position: relative; min-height: 1040px; }
+  #histChart { width: 100% !important; height: 1040px !important; }
+  #newsTooltip {
     position: absolute;
     background: #0f1624;
     border: 1px solid #25324a;
     border-radius: 10px;
     padding: 10px 12px;
-    pointer-events: auto; /* allow clicks on links */
+    pointer-events: auto;
     box-shadow: 0 8px 24px rgba(0,0,0,0.45);
     max-width: 420px;
     display: none;
     z-index: 10;
-  }}
-  #newsTooltip .date {{
-    font-weight: 700;
-    margin-bottom: 6px;
-    opacity: 0.9;
-  }}
-  #newsTooltip a {{
-    color: #9cd1ff;
-    text-decoration: none;
-  }}
-  #newsTooltip a:hover {{ text-decoration: underline; }}
-  #newsTooltip ul {{ margin: 6px 0 0 1rem; padding: 0; }}
-  #newsTooltip li {{ margin: 4px 0; }}
+  }
+  #newsTooltip .date { font-weight: 700; margin-bottom: 6px; opacity: 0.9; }
+  #newsTooltip a { color: #9cd1ff; text-decoration: none; }
+  #newsTooltip a:hover { text-decoration: underline; }
+  #newsTooltip ul { margin: 6px 0 0 1rem; padding: 0; }
+  #newsTooltip li { margin: 4px 0; }
 </style>
 </head>
 <body>
-  <h1>Daily EOD Return Predictions — {TICKER}</h1>
-  <div class="time">Last updated: {card_a['timestamp_utc']}</div>
+  <h1>Daily EOD Return Predictions — $TICKER</h1>
+  <div class="time">Last updated: $LAST_UPDATED</div>
   <div class="grid">
-    {card(card_a)}
-    {card(card_b)}
+    $CARD_A
+    $CARD_B
   </div>
 
   <div class="chart-wrap">
-    <canvas id="histChart" height="120"></canvas>
+    <canvas id="histChart"></canvas>
     <div id="newsTooltip"></div>
   </div>
 
   <table>
     <thead><tr><th>Date</th><th>Student</th><th>Pred (%)</th><th>Actual (%)</th></tr></thead>
     <tbody>
-      {rows}
+      $ROWS_HTML
     </tbody>
   </table>
 
   <div class="footer">Predictions ~12:00 UTC; Actuals filled ~23:00 UTC (post close). Hover the "Actual" line for clickable top-3 Yahoo Finance headlines.</div>
 
 <script>
-const newsMap = {news_map_json};  // date -> [{title, link}, ...]
+const newsMap = $NEWS_MAP_JSON;  // date -> [{title, link}, ...]
 
 const ctx = document.getElementById('histChart').getContext('2d');
 const tooltipEl = document.getElementById('newsTooltip');
 
-function hideTooltip() {{
-  tooltipEl.style.display = 'none';
-}}
+// sticky hide logic (only hide after leaving BOTH canvas & tooltip for 1.5s)
+let hideTimer = null;
+const HIDE_DELAY_MS = 1500;
+function cancelHide() { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } }
+function scheduleHide() { cancelHide(); hideTimer = setTimeout(() => { tooltipEl.style.display = 'none'; }, HIDE_DELAY_MS); }
+function hideTooltipNow() { cancelHide(); tooltipEl.style.display = 'none'; }
 
-function showTooltip(html, x, y) {{
+// clamp tooltip within chart container
+function showTooltip(html, x, y, container) {
+  cancelHide();
   tooltipEl.innerHTML = html;
+  tooltipEl.style.display = 'block';
   tooltipEl.style.left = x + 'px';
   tooltipEl.style.top = y + 'px';
-  tooltipEl.style.display = 'block';
-}}
 
-const chart = new Chart(ctx, {{
+  const ttRect = tooltipEl.getBoundingClientRect();
+  const contRect = container.getBoundingClientRect();
+  const margin = 12;
+  let left = x, top = y;
+
+  if (left + ttRect.width + margin > contRect.width) left = contRect.width - ttRect.width - margin;
+  if (left < margin) left = margin;
+  if (top + ttRect.height + margin > contRect.height) top = contRect.height - ttRect.height - margin;
+  if (top < margin) top = margin;
+
+  tooltipEl.style.left = left + 'px';
+  tooltipEl.style.top  = top  + 'px';
+}
+tooltipEl.addEventListener('mouseenter', () => cancelHide());
+tooltipEl.addEventListener('mouseleave', () => scheduleHide());
+
+// colors
+const colorA  = '$COLOR_A';
+const colorB  = '$COLOR_B';
+const colorAct = '$COLOR_ACT';
+const gridCol = '$GRID_COL';
+const tickCol = '$TICK_COL';
+
+const chart = new Chart(ctx, {
   type: 'line',
-  data: {{
-    labels: [{labels}],
+  data: {
+    labels: [$LABELS],
     datasets: [
-      {{ label: 'Student A — Normal', data: [{predsA}], borderWidth: 2, tension: 0.2 }},
-      {{ label: 'Student B — Finer',  data: [{predsB}], borderWidth: 2, tension: 0.2 }},
-      {{ label: 'Actual', data: [{acts}], borderDash: [6,4], borderWidth: 2, tension: 0.2 }}
+      {
+        label: 'Student A — Normal',
+        data: [$PREDS_A],
+        borderColor: colorA,
+        backgroundColor: colorA,
+        pointBackgroundColor: colorA,
+        pointBorderColor: colorA,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.2
+      },
+      {
+        label: 'Student B — Finer',
+        data: [$PREDS_B],
+        borderColor: colorB,
+        backgroundColor: colorB,
+        pointBackgroundColor: colorB,
+        pointBorderColor: colorB,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        tension: 0.2
+      },
+      {
+        label: 'Actual',
+        data: [$ACTS],
+        borderColor: colorAct,
+        backgroundColor: colorAct,
+        pointBackgroundColor: colorAct,
+        pointBorderColor: colorAct,
+        borderDash: [6,4],
+        borderWidth: 2,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        tension: 0.2
+      }
     ]
-  }},
-  options: {{
+  },
+  options: {
     responsive: true,
-    interaction: {{ mode: 'nearest', intersect: false }},
-    scales: {{
-      y: {{ title: {{ display:true, text:'Return (%)' }} }}
-    }},
-    plugins: {{
-      tooltip: {{
-        enabled: false, // disable canvas tooltip to use clickable HTML tooltip
-        external: function(context) {{
+    maintainAspectRatio: false,
+    interaction: { mode: 'nearest', intersect: false },
+    scales: {
+      x: {
+        ticks: { color: tickCol },
+        grid:  { color: gridCol }
+      },
+      y: {
+        ticks: { color: tickCol },
+        grid:  { color: gridCol },
+        title: { display: true, text: 'Return (%)', color: tickCol }
+      }
+    },
+    plugins: {
+      legend: {
+        labels: { color: tickCol }
+      },
+      tooltip: {
+        enabled: false,  // use our HTML tooltip
+        external: function(context) {
           const tooltip = context.tooltip;
-          if (!tooltip || tooltip.opacity === 0) {{
-            hideTooltip();
-            return;
-          }}
-          const dp = tooltip.dataPoints && tooltip.dataPoints[0];
-          if (!dp) {{ hideTooltip(); return; }}
+          const containerNode = context.chart.canvas.parentNode;
 
-          // Only show for the "Actual" dataset
+          // Let mouseleave handlers decide when to hide
+          if (!tooltip || tooltip.opacity === 0) return;
+
+          const dp = tooltip.dataPoints && tooltip.dataPoints[0];
+          if (!dp) return;
+
+          // Only for "Actual"
           const dsLabel = dp.dataset.label || '';
-          if (dsLabel !== 'Actual') {{
-            hideTooltip();
-            return;
-          }}
+          if (dsLabel !== 'Actual') return;
 
           const labelDate = dp.label;
           const items = newsMap[labelDate] || [];
-          if (items.length === 0) {{
-            hideTooltip();
-            return;
-          }}
+          if (items.length === 0) return;
 
-          // Build HTML
           let html = '<div class="date">' + labelDate + ' — Top News</div><ul>';
-          for (const it of items) {{
+          for (const it of items) {
             const safeTitle = (it.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const safeLink  = (it.link  || '#').replace(/"/g, '&quot;');
             html += '<li><a href="' + safeLink + '" target="_blank" rel="noopener noreferrer">' + safeTitle + '</a></li>';
-          }}
+          }
           html += '</ul>';
 
-          // Position near caret, relative to canvas container
           const canvasRect = context.chart.canvas.getBoundingClientRect();
-          const containerRect = context.chart.canvas.parentNode.getBoundingClientRect();
-          const x = tooltip.caretX + (canvasRect.left - containerRect.left) + 12; // offset
+          const containerRect = containerNode.getBoundingClientRect();
+          const x = tooltip.caretX + (canvasRect.left - containerRect.left) + 12;
           const y = tooltip.caretY + (canvasRect.top  - containerRect.top)  + 12;
-          showTooltip(html, x, y);
-        }}
-      }}
-    }},
-    onHover: (evt, activeEls) => {{
-      const point = chart.getElementsAtEventForMode(evt, 'nearest', {{intersect:false}}, false)[0];
-      if (point && chart.data.datasets[point.datasetIndex].label === 'Actual') {{
+
+          showTooltip(html, x, y, containerNode);
+        }
+      }
+    },
+    onHover: (evt) => {
+      const point = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, false)[0];
+      if (point && chart.data.datasets[point.datasetIndex].label === 'Actual') {
         evt.native.target.style.cursor = 'pointer';
-      }} else {{
+        cancelHide(); // hovering canvas; keep tooltip open
+      } else {
         evt.native.target.style.cursor = 'default';
-      }}
-    }}
-  }}
-}});
+        // do NOT schedule hide here; user may be moving toward the tooltip
+      }
+    }
+  }
+});
 
-// Hide tooltip when leaving the canvas
-chart.canvas.addEventListener('mouseleave', hideTooltip);
+// Only schedule hide when leaving the canvas (tooltip handles itself)
+chart.canvas.addEventListener('mouseleave', () => scheduleHide());
+chart.canvas.addEventListener('mouseenter', () => cancelHide());
 
-// Optional: hide tooltip on scroll/resize (keeps UI tidy)
-window.addEventListener('scroll', hideTooltip);
-window.addEventListener('resize', hideTooltip);
+// Optional tidy-ups
+window.addEventListener('scroll', () => scheduleHide());
+window.addEventListener('resize', () => scheduleHide());
 </script>
 </body></html>
-"""
+""")
 
+    html = html_template.substitute(
+        TICKER=TICKER,
+        LAST_UPDATED=card_a['timestamp_utc'],
+        CARD_A=card(card_a),
+        CARD_B=card(card_b),
+        ROWS_HTML=rows_html,
+        NEWS_MAP_JSON=news_map_json,
+        LABELS=labels_js,
+        PREDS_A=predsA_js,
+        PREDS_B=predsB_js,
+        ACTS=acts_js,
+        COLOR_A=colorA,
+        COLOR_B=colorB,
+        COLOR_ACT=colorAct,
+        GRID_COL=gridCol,
+        TICK_COL=tickCol,
+    )
+    return html
+
+
+# Data helpers
 def fetch_actual_for_date(date_str: str) -> float | None:
     """
     Close-to-close % return for that US/Eastern date, in percent units.
     """
-    # pull a small window around the date to be safe
     df = yf.download(TICKER, period="10d", auto_adjust=True, progress=False)
     if df is None or df.empty:
         return None
     df["DailyReturn"] = df["Close"].pct_change() * 100.0
     df = df.dropna()
-
     df_idx_dates = df.index.tz_localize(None).date
     mask = np.array([str(d) == date_str for d in df_idx_dates])
     if mask.any():
         return float(df.loc[mask, "DailyReturn"].iloc[0])
     return None
 
+# Main
 def main():
     if not os.path.exists(HIST_PATH):
         print("No history.csv yet, nothing to update.")
@@ -478,7 +531,7 @@ def main():
         print("Empty history.csv, nothing to update.")
         return
 
-    # Foreach date with any NaN actual, fetch and fill those vals.
+    # Fill actuals
     for date_str in sorted(hist["date"].unique()):
         needs = hist[(hist["date"]==date_str) & (hist["actual_pct"].isna())]
         if needs.empty:
@@ -494,7 +547,7 @@ def main():
     os.makedirs(DOCS_DIR, exist_ok=True)
     hist.to_csv(HIST_PATH, index=False)
 
-    # Update news on graph for today's date if it hasn't been done already.
+    # News
     try:
         if append_today_news_if_missing():
             print(f"Saved today's news for {today_et_str()}.")
@@ -503,14 +556,14 @@ def main():
     except Exception as e:
         print("News step skipped due to error:", e)
 
-    # Load news.csv
+    # Load news for JS
     ensure_news_csv()
     try:
         news_df = pd.read_csv(NEWS_PATH)
     except Exception:
         news_df = pd.DataFrame(columns=["date","rank","title","link","publisher"])
 
-    # Re-render the page with latest cards + updated history + newsMap
+    # Render
     card_a, card_b, _ = render_html_cards_from_latest(hist)
     html = render_full_page(card_a, card_b, hist, news_df)
     with open(INDEX_PATH, "w", encoding="utf-8") as f:
