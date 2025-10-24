@@ -1,9 +1,13 @@
 import os
+import json
 from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import yfinance as yf
 
+# NEW: imports for scraping
+import requests
+from bs4 import BeautifulSoup
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../repo
 
@@ -20,6 +24,91 @@ INDEX_PATH = os.path.join(BASE_DIR, INDEX_PATH)
 # News helpers
 NEWS_PATH = os.path.join(DOCS_DIR, "news.csv")
 
+# --- Scraper config/helpers ---------------------------------------------------
+
+YF_HOME = "https://finance.yahoo.com/"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+}
+
+def _clean_text(t: str | None) -> str:
+    return " ".join((t or "").split())
+
+def _extract_title_and_link(a_tag):
+    if a_tag is None:
+        return None
+    href = a_tag.get("href", "")
+    if href.startswith("/"):
+        href = "https://finance.yahoo.com" + href
+    # Only keep real Yahoo Finance news articles (incl. live blog)
+    if "https://finance.yahoo.com/news/" not in href:
+        return None
+
+    title = a_tag.get("title")
+    if not title:
+        # Try <h2 data-testid="title">, then generic <h2>/<h3>, then link text
+        h = a_tag.select_one('[data-testid="title"], h2, h3')
+        title = h.get_text(strip=True) if h else a_tag.get_text(strip=True)
+
+    title = _clean_text(title)
+    if not title:
+        return None
+
+    return {"title": title, "link": href}
+
+def get_yahoo_home_top3():
+    """
+    Scrape the Yahoo Finance homepage hero block:
+    Lead story (data-testid="hero-lead-story")
+    First two 'hero-related' items
+
+    Returns  [title, link, publisher]
+    """
+    try:
+        with requests.Session() as s:
+            r = s.get(YF_HOME, headers=HEADERS, timeout=12)
+            r.raise_for_status()
+            soup = BeautifulSoup(r.text, "lxml")
+
+        results = []
+
+        # Lead story
+        lead_block = soup.select_one('[data-testid="hero-lead-story"]')
+        if lead_block:
+            lead_anchor = lead_block.select_one('a.titles-link, div.content a[href*="/news/"]')
+            lead = _extract_title_and_link(lead_anchor)
+            if lead:
+                lead["publisher"] = "Yahoo Finance"
+                results.append(lead)
+
+        # Two related items
+        related_block = soup.select_one(".hero-related")
+        if related_block:
+            for a in related_block.select('[data-testid="storyitem"] a[href*="/news/"]'):
+                item = _extract_title_and_link(a)
+                if item:
+                    item["publisher"] = "Yahoo Finance"
+                    results.append(item)
+                if len(results) >= 3:
+                    break
+
+        # Deduplicate by link, preserve order
+        deduped, seen = [], set()
+        for x in results:
+            if x["link"] not in seen:
+                seen.add(x["link"])
+                deduped.append(x)
+
+        return deduped[:3]
+
+    except Exception as e:
+        # If something odd happens (e.g., consent shell), just fall back later
+        print("Yahoo home scrape failed:", e)
+        return []
+
+
 def ensure_news_csv():
     # Create docs/news.csv if missing.
     os.makedirs(DOCS_DIR, exist_ok=True)
@@ -31,18 +120,37 @@ def today_et_str():
     return pd.Timestamp.now(tz="America/New_York").normalize().date().isoformat()
 
 def fetch_top3_news_today():
+    """
+    Return up to 3 items: [rank, title, link, publisher] for today's page view.
 
-    # Pull the current top 3 news articles from Yahoo Finance news
+      Try Yahoo Finance homepage (lead + related)
+      ...If empty/not working, use yfinance.Ticker(SPY).news and grab 3
+    """
+    # 1) Preferred: homepage scrape (lead + 2 related)
+    items = get_yahoo_home_top3()
+    if items:
+        out = []
+        for i, it in enumerate(items, start=1):
+            out.append({
+                "rank": i,
+                "title": it["title"],
+                "link": it["link"],
+                "publisher": it.get("publisher", "Yahoo Finance")[:128],
+            })
+        return out
+
+    # 2) Fallback: yfinance (sometimes returns empty)
     try:
         tk = yf.Ticker(TICKER)
-        items = tk.news or []
+        news = tk.news or []
     except Exception:
-        items = []
+        news = []
+
     out = []
-    for i, it in enumerate(items[:3], start=1):
+    for i, it in enumerate(news[:3], start=1):
         title = it.get("title") or ""
         link = it.get("link") or ""
-        pub  = (it.get("publisher") or "")[:128]
+        pub  = (it.get("publisher") or "")[:128] or "Yahoo Finance"
         if title and link:
             out.append({"rank": i, "title": title, "link": link, "publisher": pub})
     return out
@@ -102,8 +210,38 @@ def render_html_cards_from_latest(hist: pd.DataFrame):
     card_b = mk_card(b_row, "Student B — Finer Resolution (±2.5%, 0.1%)")
     return card_a, card_b, ts
 
-def render_full_page(card_a, card_b, history_df):
-    # (same HTML styles as morning script)
+def build_news_map_for_js(news_df: pd.DataFrame) -> str:
+    """
+    Build {date: [{title, link}...]} sorted by rank asc, for embedding in JS.
+    Returns a JSON string safe to inline.
+    """
+    if news_df is None or news_df.empty:
+        return "{}"
+    # grab needed columns
+    cols = {"date", "rank", "title", "link"}
+    have = [c for c in news_df.columns if c in cols]
+    df = news_df[have].copy()
+    # order by date then rank
+    if "rank" in df.columns:
+        df = df.sort_values(["date", "rank"])
+    else:
+        df = df.sort_values(["date"])
+    news_map = {}
+    for d, grp in df.groupby("date"):
+        items = []
+        for _, r in grp.iterrows():
+            t = str(r.get("title", ""))
+            l = str(r.get("link", ""))
+            if t and l:
+                items.append({"title": t, "link": l})
+        if items:
+            news_map[d] = items[:3]
+    return json.dumps(news_map, ensure_ascii=False)
+
+def render_full_page(card_a, card_b, history_df, news_df):
+
+    news_map_json = build_news_map_for_js(news_df)
+
     def card(r):
         pct = f"{r['prediction_pct']:+.2f}%"
         return f"""
@@ -165,7 +303,33 @@ def render_full_page(card_a, card_b, history_df):
   table {{ width:100%; border-collapse:collapse; margin-top:2rem; }}
   th, td {{ border-bottom:1px solid #1c2433; padding:0.5rem; text-align:left; }}
   th {{ opacity:0.8; }}
-  .chart-wrap {{ background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1rem; margin-top:2rem; }}
+  .chart-wrap {{ background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1rem; margin-top:2rem; position: relative; }}
+
+  /* Clickable external tooltip */
+  #newsTooltip {{
+    position: absolute;
+    background: #0f1624;
+    border: 1px solid #25324a;
+    border-radius: 10px;
+    padding: 10px 12px;
+    pointer-events: auto; /* allow clicks on links */
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    max-width: 420px;
+    display: none;
+    z-index: 10;
+  }}
+  #newsTooltip .date {{
+    font-weight: 700;
+    margin-bottom: 6px;
+    opacity: 0.9;
+  }}
+  #newsTooltip a {{
+    color: #9cd1ff;
+    text-decoration: none;
+  }}
+  #newsTooltip a:hover {{ text-decoration: underline; }}
+  #newsTooltip ul {{ margin: 6px 0 0 1rem; padding: 0; }}
+  #newsTooltip li {{ margin: 4px 0; }}
 </style>
 </head>
 <body>
@@ -178,6 +342,7 @@ def render_full_page(card_a, card_b, history_df):
 
   <div class="chart-wrap">
     <canvas id="histChart" height="120"></canvas>
+    <div id="newsTooltip"></div>
   </div>
 
   <table>
@@ -187,11 +352,26 @@ def render_full_page(card_a, card_b, history_df):
     </tbody>
   </table>
 
-  <div class="footer">Predictions ~12:00 UTC; Actuals filled ~23:00 UTC (post close).</div>
+  <div class="footer">Predictions ~12:00 UTC; Actuals filled ~23:00 UTC (post close). Hover the "Actual" line for clickable top-3 Yahoo Finance headlines.</div>
 
 <script>
+const newsMap = {news_map_json};  // date -> [{title, link}, ...]
+
 const ctx = document.getElementById('histChart').getContext('2d');
-new Chart(ctx, {{
+const tooltipEl = document.getElementById('newsTooltip');
+
+function hideTooltip() {{
+  tooltipEl.style.display = 'none';
+}}
+
+function showTooltip(html, x, y) {{
+  tooltipEl.innerHTML = html;
+  tooltipEl.style.left = x + 'px';
+  tooltipEl.style.top = y + 'px';
+  tooltipEl.style.display = 'block';
+}}
+
+const chart = new Chart(ctx, {{
   type: 'line',
   data: {{
     labels: [{labels}],
@@ -203,12 +383,71 @@ new Chart(ctx, {{
   }},
   options: {{
     responsive: true,
+    interaction: {{ mode: 'nearest', intersect: false }},
     scales: {{
       y: {{ title: {{ display:true, text:'Return (%)' }} }}
     }},
-    plugins: {{ legend: {{ display: true }} }}
+    plugins: {{
+      tooltip: {{
+        enabled: false, // disable canvas tooltip to use clickable HTML tooltip
+        external: function(context) {{
+          const tooltip = context.tooltip;
+          if (!tooltip || tooltip.opacity === 0) {{
+            hideTooltip();
+            return;
+          }}
+          const dp = tooltip.dataPoints && tooltip.dataPoints[0];
+          if (!dp) {{ hideTooltip(); return; }}
+
+          // Only show for the "Actual" dataset
+          const dsLabel = dp.dataset.label || '';
+          if (dsLabel !== 'Actual') {{
+            hideTooltip();
+            return;
+          }}
+
+          const labelDate = dp.label;
+          const items = newsMap[labelDate] || [];
+          if (items.length === 0) {{
+            hideTooltip();
+            return;
+          }}
+
+          // Build HTML
+          let html = '<div class="date">' + labelDate + ' — Top News</div><ul>';
+          for (const it of items) {{
+            const safeTitle = (it.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const safeLink  = (it.link  || '#').replace(/"/g, '&quot;');
+            html += '<li><a href="' + safeLink + '" target="_blank" rel="noopener noreferrer">' + safeTitle + '</a></li>';
+          }}
+          html += '</ul>';
+
+          // Position near caret, relative to canvas container
+          const canvasRect = context.chart.canvas.getBoundingClientRect();
+          const containerRect = context.chart.canvas.parentNode.getBoundingClientRect();
+          const x = tooltip.caretX + (canvasRect.left - containerRect.left) + 12; // offset
+          const y = tooltip.caretY + (canvasRect.top  - containerRect.top)  + 12;
+          showTooltip(html, x, y);
+        }}
+      }}
+    }},
+    onHover: (evt, activeEls) => {{
+      const point = chart.getElementsAtEventForMode(evt, 'nearest', {{intersect:false}}, false)[0];
+      if (point && chart.data.datasets[point.datasetIndex].label === 'Actual') {{
+        evt.native.target.style.cursor = 'pointer';
+      }} else {{
+        evt.native.target.style.cursor = 'default';
+      }}
+    }}
   }}
 }});
+
+// Hide tooltip when leaving the canvas
+chart.canvas.addEventListener('mouseleave', hideTooltip);
+
+// Optional: hide tooltip on scroll/resize (keeps UI tidy)
+window.addEventListener('scroll', hideTooltip);
+window.addEventListener('resize', hideTooltip);
 </script>
 </body></html>
 """
@@ -222,7 +461,7 @@ def fetch_actual_for_date(date_str: str) -> float | None:
     if df is None or df.empty:
         return None
     df["DailyReturn"] = df["Close"].pct_change() * 100.0
-    df = df.dropna() 
+    df = df.dropna()
 
     df_idx_dates = df.index.tz_localize(None).date
     mask = np.array([str(d) == date_str for d in df_idx_dates])
@@ -264,12 +503,19 @@ def main():
     except Exception as e:
         print("News step skipped due to error:", e)
 
-    # Re-render the page with latest cards + updated history
+    # Load news.csv
+    ensure_news_csv()
+    try:
+        news_df = pd.read_csv(NEWS_PATH)
+    except Exception:
+        news_df = pd.DataFrame(columns=["date","rank","title","link","publisher"])
+
+    # Re-render the page with latest cards + updated history + newsMap
     card_a, card_b, _ = render_html_cards_from_latest(hist)
-    html = render_full_page(card_a, card_b, hist)
+    html = render_full_page(card_a, card_b, hist, news_df)
     with open(INDEX_PATH, "w", encoding="utf-8") as f:
         f.write(html)
-    print("Updated docs/index.html with actuals")
+    print("Updated docs/index.html with actuals + clickable news tooltips")
 
 if __name__ == "__main__":
     main()
