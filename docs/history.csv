@@ -47,5 +47,5 @@ date,student,prediction_pct,actual_pct,timestamp_utc
 2025-11-05,"Student B — Finer Resolution (±2.5%, 0.1%)",0.8000000000000003,0.3465474334031215,2025-11-05 12:45:57 UTC
 2025-11-06,"Student A — Normal Resolution (±4%, 0.5%)",1.0,-1.0729388925125316,2025-11-06 12:47:17 UTC
 2025-11-06,"Student B — Finer Resolution (±2.5%, 0.1%)",0.8000000000000003,-1.0729388925125316,2025-11-06 12:47:17 UTC
-2025-11-07,"Student A — Normal Resolution (±4%, 0.5%)",-0.5,,2025-11-07 12:44:32 UTC
-2025-11-07,"Student B — Finer Resolution (±2.5%, 0.1%)",-0.5999999999999999,,2025-11-07 12:44:32 UTC
+2025-11-07,"Student A — Normal Resolution (±4%, 0.5%)",-0.5,0.09845789961884233,2025-11-07 12:44:32 UTC
+2025-11-07,"Student B — Finer Resolution (±2.5%, 0.1%)",-0.5999999999999999,0.09845789961884233,2025-11-07 12:44:32 UTC
