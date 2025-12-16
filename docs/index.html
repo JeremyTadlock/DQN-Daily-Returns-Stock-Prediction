@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en"><head>
+<html lang="en">
+<head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Daily EOD Return Predictions</title>
@@ -17,63 +18,42 @@
   table { width:100%; border-collapse:collapse; margin-top:2rem; }
   th, td { border-bottom:1px solid #1c2433; padding:0.5rem; text-align:left; }
   th { opacity:0.8; }
-  .chart-wrap { background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1rem; margin-top:2rem; position: relative; min-height: 1040px; }
-  #histChart { width: 100% !important; height: 1040px !important; }
-  #newsTooltip {
-    position: absolute;
-    background: #0f1624;
-    border: 1px solid #25324a;
-    border-radius: 10px;
-    padding: 10px 12px;
-    pointer-events: auto;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
-    max-width: 420px;
-    display: none;
-    z-index: 10;
-  }
-  #newsTooltip .date { font-weight: 700; margin-bottom: 6px; opacity: 0.9; }
-  #newsTooltip a { color: #9cd1ff; text-decoration: none; }
-  #newsTooltip a:hover { text-decoration: underline; }
-  #newsTooltip ul { margin: 6px 0 0 1rem; padding: 0; }
-  #newsTooltip li { margin: 4px 0; }
+  .chart-wrap { background:#121824; border:1px solid #1c2433; border-radius:16px; padding:1rem; margin-top:2rem; }
 </style>
 </head>
 <body>
   <h1>Daily EOD Return Predictions — SPY</h1>
-  <div class="time">Last updated: 2025-12-15 23:23:18 UTC</div>
+  <div class="time">Last updated: 2025-12-16 12:53:13 UTC</div>
   <div class="grid">
     
         <div class="card">
           <div class="title">Student A — Normal Resolution (±4%, 0.5%)</div>
-          <div class="pred">+1.00%</div>
-          <div class="meta">for 2025-12-15 • (cards from latest entries)</div>
+          <div class="pred">+0.00%</div>
+          <div class="meta">for 2025-12-16 • normalized with training stats</div>
         </div>
         
     
         <div class="card">
           <div class="title">Student B — Finer Resolution (±2.5%, 0.1%)</div>
-          <div class="pred">+0.40%</div>
-          <div class="meta">for 2025-12-15 • (cards from latest entries)</div>
+          <div class="pred">-0.10%</div>
+          <div class="meta">for 2025-12-16 • normalized with training stats</div>
         </div>
         
   </div>
 
   <div class="chart-wrap">
-    <canvas id="histChart"></canvas>
-    <div id="newsTooltip"></div>
+    <canvas id="histChart" height="120"></canvas>
   </div>
 
   <table>
     <thead><tr><th>Date</th><th>Student</th><th>Pred (%)</th><th>Actual (%)</th></tr></thead>
     <tbody>
-      <tr><td>2025-11-04</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.00%</td><td>-1.19%</td></tr>
-<tr><td>2025-11-04</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-0.10%</td><td>-1.19%</td></tr>
-<tr><td>2025-11-05</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+1.00%</td><td>+0.35%</td></tr>
+      <tr><td>2025-11-05</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+1.00%</td><td>+0.35%</td></tr>
 <tr><td>2025-11-05</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.80%</td><td>+0.35%</td></tr>
 <tr><td>2025-11-06</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+1.00%</td><td>-1.07%</td></tr>
 <tr><td>2025-11-06</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.80%</td><td>-1.07%</td></tr>
-<tr><td>2025-11-07</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-0.60%</td><td>+0.10%</td></tr>
 <tr><td>2025-11-07</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>-0.50%</td><td>+0.10%</td></tr>
+<tr><td>2025-11-07</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-0.60%</td><td>+0.10%</td></tr>
 <tr><td>2025-11-10</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-1.10%</td><td>+1.56%</td></tr>
 <tr><td>2025-11-10</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>-1.00%</td><td>+1.56%</td></tr>
 <tr><td>2025-11-11</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.50%</td><td>+0.23%</td></tr>
@@ -86,10 +66,10 @@
 <tr><td>2025-11-14</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-0.60%</td><td>-0.02%</td></tr>
 <tr><td>2025-11-17</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.00%</td><td>-0.93%</td></tr>
 <tr><td>2025-11-17</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.20%</td><td>-0.93%</td></tr>
-<tr><td>2025-11-18</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.50%</td><td>-0.84%</td></tr>
 <tr><td>2025-11-18</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-0.40%</td><td>-0.84%</td></tr>
-<tr><td>2025-11-19</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.80%</td><td>+0.39%</td></tr>
+<tr><td>2025-11-18</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.50%</td><td>-0.84%</td></tr>
 <tr><td>2025-11-19</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.50%</td><td>+0.39%</td></tr>
+<tr><td>2025-11-19</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.80%</td><td>+0.39%</td></tr>
 <tr><td>2025-11-20</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+1.00%</td><td>-1.52%</td></tr>
 <tr><td>2025-11-20</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.80%</td><td>-1.52%</td></tr>
 <tr><td>2025-11-21</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.00%</td><td>+1.00%</td></tr>
@@ -98,8 +78,8 @@
 <tr><td>2025-11-24</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-0.10%</td><td>+1.47%</td></tr>
 <tr><td>2025-11-25</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.00%</td><td>+0.94%</td></tr>
 <tr><td>2025-11-25</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.40%</td><td>+0.94%</td></tr>
-<tr><td>2025-11-26</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+1.50%</td><td>+0.69%</td></tr>
 <tr><td>2025-11-26</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.80%</td><td>+0.69%</td></tr>
+<tr><td>2025-11-26</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+1.50%</td><td>+0.69%</td></tr>
 <tr><td>2025-11-27</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-0.10%</td><td></td></tr>
 <tr><td>2025-11-27</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>-0.50%</td><td></td></tr>
 <tr><td>2025-11-28</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>-0.50%</td><td>+0.55%</td></tr>
@@ -126,174 +106,37 @@
 <tr><td>2025-12-12</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-0.10%</td><td>-1.08%</td></tr>
 <tr><td>2025-12-15</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+1.00%</td><td>-0.15%</td></tr>
 <tr><td>2025-12-15</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>+0.40%</td><td>-0.15%</td></tr>
+<tr><td>2025-12-16</td><td>Student A — Normal Resolution (±4%, 0.5%)</td><td>+0.00%</td><td></td></tr>
+<tr><td>2025-12-16</td><td>Student B — Finer Resolution (±2.5%, 0.1%)</td><td>-0.10%</td><td></td></tr>
     </tbody>
   </table>
 
-  <div class="footer">Predictions ~12:00 UTC; Actuals filled ~23:00 UTC (post close). Hover the "Actual" line for clickable top-3 Yahoo Finance headlines.</div>
+  <div class="footer">Runs on weekdays around 12:00 UTC for predictions and 23:00 UTC for actuals via GitHub Actions.</div>
 
 <script>
-const newsMap = {"2025-10-24": [{"title": "Stocks fly to fresh records after tame inflation report", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-surge-to-records-as-tame-inflation-cements-fed-rate-cut-bets-200014567.html"}, {"title": "Trump tariffs panned by Bernanke, Yellen in Supreme Court filing", "link": "https://finance.yahoo.com/news/trump-tariffs-panned-bernanke-yellen-184211358.html"}], "2025-10-27": [{"title": "Tesla chair pleads with investors: Back Musk's $1T pay plan", "link": "https://finance.yahoo.com/news/tesla-may-lose-elon-musk-if-shareholders-dont-approve-1-trillion-pay-package-chairperson-warns-143908548.html"}, {"title": "Flight delays pile up as shutdown eyes longest in history", "link": "https://finance.yahoo.com/news/live/government-shutdown-live-airport-delays-pile-up-as-lawmakers-return-to-dc-with-stoppage-nearing-a-full-month-100414997.html"}], "2025-10-28": [{"title": "US stock futures flat with Fed decision, Big Tech earnings on deck", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-futures-flat-with-fed-decision-slew-of-big-tech-earnings-on-deck-225431419.html"}, {"title": "Nvidia shines, nears $5T value after flurry of moves at GTC", "link": "https://finance.yahoo.com/news/nvidia-stock-hits-all-time-high-nears-5-trillion-market-cap-after-slew-of-updates-at-gtc-event-200333851.html"}], "2025-10-29": [{"title": "Fed cuts rates, Powell leaves December move up in the air", "link": "https://finance.yahoo.com/news/federal-reserve-cuts-interest-rates-by-025-for-second-straight-meeting-2-officials-vote-against-move-as-shutdown-challenges-mount-143206541.html"}, {"title": "Microsoft beats on earnings as cloud shines, but stock tumbles", "link": "https://finance.yahoo.com/news/microsoft-tops-q1-expectations-as-cloud-shines-but-stock-tumbles-151933788.html"}], "2025-10-30": [{"title": "Amazon stock soars on big earnings beat, AWS growth", "link": "https://finance.yahoo.com/news/amazon-q3-earnings-beat-on-top-and-bottom-lines-as-aws-growth-sends-stock-higher-155934360.html"}, {"title": "Netflix announces 10-for-1 stock split", "link": "https://finance.yahoo.com/news/netflix-announces-10-for-1-stock-split-as-company-aims-to-make-stock-more-accessible-for-employees-204922842.html"}], "2025-10-31": [{"title": "Fed officials strike hawkish tone on rate cuts", "link": "https://finance.yahoo.com/news/4-fed-officials-strike-hawkish-tone-on-rate-cuts-citing-inflation-concerns-123323443.html"}, {"title": "Stocks climb to cap winning month", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-climb-to-cap-winning-month-as-strong-earnings-easing-rates-fuel-amazon-tech-stocks-200208645.html"}], "2025-11-03": [{"title": "Big Tech's AI bets show market bubble has 'good ways to go'", "link": "https://finance.yahoo.com/news/big-techs-rising-ai-investments-show-market-bubble-still-has-a-good-ways-to-go-154416770.html"}, {"title": "Nasdaq pops as AI optimism sends Amazon, Nvidia higher", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-slips-nasdaq-pops-as-ai-optimism-sends-amazon-nvidia-higher-210217774.html"}], "2025-11-04": [{"title": "Trump's tariffs head to the Supreme Court", "link": "https://finance.yahoo.com/news/looking-to-experts-for-how-the-supreme-court-will-rule-on-tariffs-they-arent-sure-either-141959943.html"}, {"title": "Nasdaq leads stock slide as tech gets pummeled", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-slide-as-tech-hit-on-ai-valuation-fears-bitcoin-dips-below-100k-210110391.html"}], "2025-11-05": [{"title": "Are tariffs taxes on Americans? Their fate may hinge on the answer.", "link": "https://finance.yahoo.com/news/are-tariffs-taxes-on-americans-the-fate-of-blanket-tariffs-appears-to-hinge-on-questions-trump-has-evaded-for-years-203827145.html"}, {"title": "Stocks rise as ADP jobs jump, SCOTUS questions tariffs", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-rise-as-tech-rebounds-supreme-court-questions-trump-tariffs-210033658.html"}], "2025-11-06": [{"title": "Tesla shareholders approve Musk's $1 trillion pay package", "link": "https://finance.yahoo.com/news/tesla-shareholders-approve-musks-1-trillion-pay-package-215604433.html"}, {"title": "Stocks sink as AI and job jitters return", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-fall-as-nvidia-leads-ai-trade-lower-jobs-jitters-reignite-210316062.html"}], "2025-11-07": [{"title": "Stocks end volatile week lower amid worst tech sell-off since April", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-end-volatile-week-lower-amid-worst-tech-sell-off-since-april-210026318.html"}, {"title": "Trump administration rules out AI backstop amid OpenAI uproar", "link": "https://finance.yahoo.com/news/trump-administration-rules-ai-backstop-200734894.html"}], "2025-11-10": [{"title": "Trump backs deal to end shutdown as Senate eyes final vote", "link": "https://finance.yahoo.com/news/live/government-shutdown-latest-trump-backs-deal-to-end-shutdown-as-senate-moves-toward-final-vote-100414291.html"}, {"title": "S&P 500, Nasdaq soar with shutdown's end in sight", "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-soar-lead-dow-higher-as-senate-vote-lifts-hopes-for-end-to-us-shutdown-210042449.html"}], "2025-11-11": [{"title": "The bull case for stocks is broadening beyond AI", "link": "https://finance.yahoo.com/news/ai-fueled-the-stock-market-rally-earnings-are-now-giving-it-staying-power-110032880.html"}, {"title": "Dow surges over 500 points to record, but Nvidia's slide weighs", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-jumps-over-500-points-to-record-close-nvidias-slide-drags-on-nasdaq-210017301.html"}], "2025-11-12": [{"title": "More Fed officials sound caution on rate cuts", "link": "https://finance.yahoo.com/news/boston-feds-collins-the-bar-for-cutting-rates-further-is-relatively-high-sees-holding-for-some-time-210005580.html"}, {"title": "Dow closes above 48,000 for first time as shutdown vote looms", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-closes-above-48000-for-first-time-nasdaq-slips-with-government-shutdown-vote-on-deck-210039048.html"}], "2025-11-13": [{"title": "Stocks get clobbered as shutdown fallout clouds Fed outlook", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-tumbles-800-points-with-nasdaq-sp-500-hammered-as-investors-pare-rate-cut-bets-210136974.html"}, {"title": "Fed doubts grow over December cut with Kashkari now on fence", "link": "https://finance.yahoo.com/news/fed-doubts-grow-over-december-213109890.html"}], "2025-11-14": [{"title": "Trump signs order to ease tariffs on beef, coffee, bananas, tomatoes", "link": "https://finance.yahoo.com/news/live/trump-tariffs-live-updates-trump-readies-tariff-cuts-on-beef-coffee-bananas-to-help-slash-us-grocery-bills-231853207.html"}, {"title": "Dow, S&P 500, Nasdaq close mixed to cap a volatile week", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-close-mixed-to-cap-a-volatile-week-as-fed-cut-in-doubt-210027944.html"}], "2025-11-17": [{"title": "Fed's Waller backs December cut with jobs market near 'stall speed'", "link": "https://finance.yahoo.com/news/feds-waller-calls-for-december-rate-cut-while-jefferson-wants-to-move-slowly-144135655.html"}, {"title": "Stock slide resumes in run-up to Nvidia earnings, jobs data", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-slide-as-sell-off-resumes-ahead-of-nvidia-earnings-jobs-data-181130773.html"}], "2025-11-18": [{"title": "Wall Street braces for Nvidia earnings", "link": "https://finance.yahoo.com/news/nvidia-to-report-high-stakes-q3-earnings-amid-investor-concerns-of-ai-overbuilding-153409342.html"}, {"title": "Dow slides 500 points as sell-off deepens ahead of Nvidia", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-slides-500-points-sp-500-notches-4th-day-of-losses-as-nvidia-earnings-loom-210448189.html"}], "2025-11-19": [{"title": "Nvidia stock jumps as 'off the charts' Blackwell sales drive beats", "link": "https://finance.yahoo.com/news/nvidia-stock-soars-after-q3-earnings-forecasts-top-estimates-with-sales-for-ai-chips-off-the-charts-153409984.html"}, {"title": "Stocks pause sell-off as tech bounces back", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-rise-as-stocks-pause-sell-off-streak-before-nvidia-earnings-210332709.html"}], "2025-11-20": [{"title": "Wall Street's roaring start turns into another rout", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-slide-out-gains-as-nvidia-tech-stocks-lead-sharp-reversal-lower-210131763.html"}, {"title": "'Split verdict' jobs report muddies the Fed's next move", "link": "https://finance.yahoo.com/news/unhelpful-split-verdict-september-jobs-report-makes-fed-next-move-unclear-161612323.html"}], "2025-11-21": [{"title": "The 2 Fed comments boosting odds of a December cut", "link": "https://finance.yahoo.com/news/the-2-fed-comments-that-are-boosting-odds-of-a-december-rate-cut-170420327.html"}, {"title": "Stocks bounce to end turbulent week on Wall Street", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-bounce-but-end-turbulent-week-with-sharp-losses-210532877.html"}], "2025-11-24": [{"title": "Bitcoin's 3 big problems", "link": "https://finance.yahoo.com/news/bitcoin-faces-3-big-problems-as-the-cryptocurrency-struggles-to-rebound-amid-30-slide-from-record-highs-213736236.html"}, {"title": "Stocks soar as Big Tech leads rally", "link": "https://finance.yahoo.com/news/live/stock-market-today-nasdaq-sees-biggest-jump-since-may-sp-500-soars-as-alphabet-tesla-lead-tech-rally-210114487.html"}], "2025-11-25": [{"title": "'I already know my choice': A closer look at Trump's Fed chair finalists", "link": "https://finance.yahoo.com/news/who-will-replace-federal-reserve-chair-jerome-powell-a-look-at-the-5-finalists-194938493.html"}, {"title": "Dow leads stocks higher as Wall Street rally continues", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-rally-for-3rd-day-as-fed-rate-cut-hopes-grow-apple-and-alphabet-notch-records-210019302.html"}], "2025-11-26": [{"title": "Stocks stay in rally mode ahead of Thanksgiving", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-rally-into-thanksgiving-notch-best-4-day-stretch-since-may-210107147.html"}, {"title": "Toyota has figured out what makes Trump happy. Here's its endgame.", "link": "https://finance.yahoo.com/news/toyota-has-figured-out-what-makes-trump-happy-heres-its-endgame-100017003.html"}], "2025-11-27": [{"title": "Seasonal hiring offers little reprieve for labor market woes", "link": "https://finance.yahoo.com/news/seasonal-hiring-offers-little-reprieve-for-labor-market-woes-110044972.html"}, {"title": "'New bull market': Wall Street shoots high for stocks in 2026", "link": "https://finance.yahoo.com/news/wall-streets-2026-forecasts-are-rolling-in--and-some-see-the-sp-500-hitting-8000-110002501.html"}], "2025-11-28": [{"title": "US stocks extend winning streak to cap a rocky month", "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-dow-rise-to-end-a-rocky-month-nasdaq-snaps-7-month-win-streak-180355656.html"}, {"title": "Gold clinches 4th straight monthly gain, closes in on record high", "link": "https://finance.yahoo.com/news/gold-clinches-fourth-straight-monthly-gain-closes-in-on-record-high-as-markets-solidify-rate-cut-bets-181701120.html"}], "2025-12-01": [{"title": "BofA says clients should start thinking about crypto exposure", "link": "https://finance.yahoo.com/news/bank-of-america-says-its-wealth-management-clients-may-put-up-to-4-of-their-portfolio-in-crypto-220028738.html"}, {"title": "Stocks slide as December gets off to rocky start", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-slide-as-bitcoin-tumbles-to-kick-off-december-210035496.html"}], "2025-12-02": [{"title": "Holiday shopping surge masks signs of consumer 'running out of steam'", "link": "https://finance.yahoo.com/news/analysis-strong-start-online-holiday-194029157.html"}, {"title": "Nasdaq leads stock bounce back as bitcoin surges", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-rise-as-bitcoin-rockets-back-above-90000-210121108.html"}], "2025-12-03": [{"title": "Wall Street shifts AI narrative from 'bubble' to 'air pocket'", "link": "https://finance.yahoo.com/news/not-a-bubble-but-maybe-an-air-pocket-wall-street-says-its-time-to-reset-the-ai-narrative-165125153.html"}, {"title": "Stocks swing higher as ADP surprise fuels Fed bets", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-rise-as-weak-adp-jobs-data-reinforces-growing-fed-rate-cut-bets-210358240.html"}], "2025-12-04": [{"title": "The 'OK'-shaped economy?", "link": "https://finance.yahoo.com/news/a-k-shaped-economy-has-investors-on-edge-bofa-says-it-may-hold-up-110013215.html"}, {"title": "Stocks end little changed as rate-cut conviction runs high", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-end-little-changed-as-wall-streets-fed-rate-cut-conviction-runs-high-210046639.html"}], "2025-12-05": [{"title": "S&P 500, Nasdaq notch fourth straight day of gains", "link": "https://finance.yahoo.com/news/live/stock-market-today-sp-500-nasdaq-notch-fourth-day-of-gains-with-next-weeks-fed-meeting-in-focus-151830333.html"}, {"title": "Consumer sentiment rises for first time in 5 months", "link": "https://finance.yahoo.com/news/consumer-sentiment-ticks-higher-in-december-as-inflation-expectations-improve-152112488.html"}], "2025-12-08": [{"title": "Trump greenlights sale of Nvidia's H200 chips to China", "link": "https://finance.yahoo.com/news/trump-approves-nvidia-h200-chips-for-sale-to-china-203937120.html"}, {"title": "Stocks fall as Wall Street awaits Fed meeting", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-fall-as-netflix-skids-on-deal-drama-nvidia-rises-205106952.html"}], "2025-12-09": [{"title": "Wall Street braces for 'hawkish cut' from Fed", "link": "https://finance.yahoo.com/news/the-fed-is-likely-to-cut-rates-for-a-third-time-this-year-what-happens-next-year-is-less-certain-110003305.html"}, {"title": "Stocks end mixed with all eyes on Fed decision", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-slips-as-jpmorgan-slides-sp-500-nasdaq-little-changed-with-all-eyes-on-fed-decision-210044915.html"}], "2025-12-10": [{"title": "Fed cuts rates, signals it may be done for now", "link": "https://finance.yahoo.com/news/federal-reserve-cuts-interest-rates-by-25-basis-points-signals-1-cut-ahead-150046493.html"}, {"title": "Dow surges, S&P 500 nears record after rate cut", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-surges-sp-500-rallies-near-record-as-fed-cuts-rates-powell-offers-no-surprises-210205902.html"}], "2025-12-11": [{"title": "Oracle made a $300 billion bet on OpenAI. It's paying the price.", "link": "https://finance.yahoo.com/news/oracle-made-a-300-billion-bet-on-openai-its-paying-the-price-205441863.html"}, {"title": "Dow, S&P 500 vault to fresh records", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-jumps-650-points-to-post-record-sp-500-climbs-above-6900-for-first-time-210051184.html"}], "2025-12-12": [{"title": "Dow, S&P 500, Nasdaq sink to cap brutal week for tech stocks", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-sink-to-cap-brutal-week-for-tech-stocks-210016552.html"}, {"title": "Stocks to watch when Supreme Court rules on Trump's tariffs", "link": "https://finance.yahoo.com/news/stocks-watch-supreme-court-rules-204638666.html"}], "2025-12-15": [{"title": "Ford to take $19.5B charge in sweeping EV pivot", "link": "https://finance.yahoo.com/news/ford-takes-195b-charge-in-hybrid-pivot-cancels-f-150-lightning-ev-launches-new-battery-storage-business-210713166.html"}, {"title": "Tech leads declines to kick off big data week", "link": "https://finance.yahoo.com/news/live/stock-market-today-dow-sp-500-nasdaq-slip-as-tech-slides-ahead-of-jobs-report-210415301.html"}]};  // date -> [{title, link}, ...]
-
 const ctx = document.getElementById('histChart').getContext('2d');
-const tooltipEl = document.getElementById('newsTooltip');
-
-// sticky hide logic (only hide after leaving BOTH canvas & tooltip for 1.5s)
-let hideTimer = null;
-const HIDE_DELAY_MS = 1500;
-function cancelHide() { if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; } }
-function scheduleHide() { cancelHide(); hideTimer = setTimeout(() => { tooltipEl.style.display = 'none'; }, HIDE_DELAY_MS); }
-function hideTooltipNow() { cancelHide(); tooltipEl.style.display = 'none'; }
-
-// clamp tooltip within chart container
-function showTooltip(html, x, y, container) {
-  cancelHide();
-  tooltipEl.innerHTML = html;
-  tooltipEl.style.display = 'block';
-  tooltipEl.style.left = x + 'px';
-  tooltipEl.style.top = y + 'px';
-
-  const ttRect = tooltipEl.getBoundingClientRect();
-  const contRect = container.getBoundingClientRect();
-  const margin = 12;
-  let left = x, top = y;
-
-  if (left + ttRect.width + margin > contRect.width) left = contRect.width - ttRect.width - margin;
-  if (left < margin) left = margin;
-  if (top + ttRect.height + margin > contRect.height) top = contRect.height - ttRect.height - margin;
-  if (top < margin) top = margin;
-
-  tooltipEl.style.left = left + 'px';
-  tooltipEl.style.top  = top  + 'px';
-}
-tooltipEl.addEventListener('mouseenter', () => cancelHide());
-tooltipEl.addEventListener('mouseleave', () => scheduleHide());
-
-// colors
-const colorA  = '#4cc9f0';
-const colorB  = '#f72585';
-const colorAct = '#e2e8f0';
-const gridCol = 'rgba(226, 232, 240, 0.12)';
-const tickCol = 'rgba(226, 232, 240, 0.75)';
-
-const chart = new Chart(ctx, {
+new Chart(ctx, {
   type: 'line',
   data: {
-    labels: ['2025-11-04','2025-11-05','2025-11-06','2025-11-07','2025-11-10','2025-11-11','2025-11-12','2025-11-13','2025-11-14','2025-11-17','2025-11-18','2025-11-19','2025-11-20','2025-11-21','2025-11-24','2025-11-25','2025-11-26','2025-11-27','2025-11-28','2025-12-01','2025-12-02','2025-12-03','2025-12-04','2025-12-05','2025-12-08','2025-12-09','2025-12-10','2025-12-11','2025-12-12','2025-12-15'],
+    labels: ['2025-11-05','2025-11-06','2025-11-07','2025-11-10','2025-11-11','2025-11-12','2025-11-13','2025-11-14','2025-11-17','2025-11-18','2025-11-19','2025-11-20','2025-11-21','2025-11-24','2025-11-25','2025-11-26','2025-11-27','2025-11-28','2025-12-01','2025-12-02','2025-12-03','2025-12-04','2025-12-05','2025-12-08','2025-12-09','2025-12-10','2025-12-11','2025-12-12','2025-12-15','2025-12-16'],
     datasets: [
-      {
-        label: 'Student A — Normal',
-        data: [0.0000,1.0000,1.0000,-0.5000,-1.0000,0.5000,0.5000,0.0000,-1.0000,0.0000,0.5000,0.5000,1.0000,0.0000,0.5000,0.0000,1.5000,-0.5000,-0.5000,0.0000,0.5000,1.0000,0.5000,-0.5000,0.0000,0.5000,0.0000,0.5000,0.0000,1.0000],
-        borderColor: colorA,
-        backgroundColor: colorA,
-        pointBackgroundColor: colorA,
-        pointBorderColor: colorA,
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.2
-      },
-      {
-        label: 'Student B — Finer',
-        data: [-0.1000,0.8000,0.8000,-0.6000,-1.1000,-0.6000,0.4000,0.4000,-0.6000,0.2000,-0.4000,0.8000,0.8000,0.4000,-0.1000,0.4000,0.8000,-0.1000,-0.1000,-0.1000,0.8000,0.8000,-0.1000,-0.4000,-0.1000,0.8000,-0.1000,0.4000,-0.1000,0.4000],
-        borderColor: colorB,
-        backgroundColor: colorB,
-        pointBackgroundColor: colorB,
-        pointBorderColor: colorB,
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        tension: 0.2
-      },
-      {
-        label: 'Actual',
-        data: [-1.1854,0.3465,-1.0729,0.0985,1.5604,0.2289,0.0556,-1.6594,-0.0164,-0.9316,-0.8398,0.3863,-1.5242,0.9961,1.4719,0.9406,0.6903,null,0.5458,-0.4565,0.1852,0.3463,0.0731,0.1899,-0.3004,-0.0863,0.6632,0.2327,-1.0752,-0.1511],
-        borderColor: colorAct,
-        backgroundColor: colorAct,
-        pointBackgroundColor: colorAct,
-        pointBorderColor: colorAct,
-        borderDash: [6,4],
-        borderWidth: 2,
-        pointRadius: 3,
-        pointHoverRadius: 6,
-        tension: 0.2
-      }
+      { label: 'Student A — Normal', data: [1.0000,1.0000,-0.5000,-1.0000,0.5000,0.5000,0.0000,-1.0000,0.0000,0.5000,0.5000,1.0000,0.0000,0.5000,0.0000,1.5000,-0.5000,-0.5000,0.0000,0.5000,1.0000,0.5000,-0.5000,0.0000,0.5000,0.0000,0.5000,0.0000,1.0000,0.0000], borderWidth: 2, tension: 0.2 },
+      { label: 'Student B — Finer', data: [0.8000,0.8000,-0.6000,-1.1000,-0.6000,0.4000,0.4000,-0.6000,0.2000,-0.4000,0.8000,0.8000,0.4000,-0.1000,0.4000,0.8000,-0.1000,-0.1000,-0.1000,0.8000,0.8000,-0.1000,-0.4000,-0.1000,0.8000,-0.1000,0.4000,-0.1000,0.4000,-0.1000], borderWidth: 2, tension: 0.2 },
+      { label: 'Actual', data: [0.3465,-1.0729,0.0985,1.5604,0.2289,0.0556,-1.6594,-0.0164,-0.9316,-0.8398,0.3863,-1.5242,0.9961,1.4719,0.9406,0.6903,null,0.5458,-0.4565,0.1852,0.3463,0.0731,0.1899,-0.3004,-0.0863,0.6632,0.2327,-1.0752,-0.1511,null], borderDash: [6,4], borderWidth: 2, tension: 0.2 }
     ]
   },
   options: {
     responsive: true,
-    maintainAspectRatio: false,
-    interaction: { mode: 'nearest', intersect: false },
     scales: {
-      x: {
-        ticks: { color: tickCol },
-        grid:  { color: gridCol }
-      },
       y: {
-        ticks: { color: tickCol },
-        grid:  { color: gridCol },
-        title: { display: true, text: 'Return (%)', color: tickCol }
+        title: { display:true, text:'Return (%)' }
       }
     },
     plugins: {
-      legend: {
-        labels: { color: tickCol }
-      },
-      tooltip: {
-        enabled: false,  // use our HTML tooltip
-        external: function(context) {
-          const tooltip = context.tooltip;
-          const containerNode = context.chart.canvas.parentNode;
-
-          // Let mouseleave handlers decide when to hide
-          if (!tooltip || tooltip.opacity === 0) return;
-
-          const dp = tooltip.dataPoints && tooltip.dataPoints[0];
-          if (!dp) return;
-
-          // Only for "Actual"
-          const dsLabel = dp.dataset.label || '';
-          if (dsLabel !== 'Actual') return;
-
-          const labelDate = dp.label;
-          const items = newsMap[labelDate] || [];
-          if (items.length === 0) return;
-
-          let html = '<div class="date">' + labelDate + ' — Top News</div><ul>';
-          for (const it of items) {
-            const safeTitle = (it.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            const safeLink  = (it.link  || '#').replace(/"/g, '&quot;');
-            html += '<li><a href="' + safeLink + '" target="_blank" rel="noopener noreferrer">' + safeTitle + '</a></li>';
-          }
-          html += '</ul>';
-
-          const canvasRect = context.chart.canvas.getBoundingClientRect();
-          const containerRect = containerNode.getBoundingClientRect();
-          const x = tooltip.caretX + (canvasRect.left - containerRect.left) + 12;
-          const y = tooltip.caretY + (canvasRect.top  - containerRect.top)  + 12;
-
-          showTooltip(html, x, y, containerNode);
-        }
-      }
-    },
-    onHover: (evt) => {
-      const point = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: false }, false)[0];
-      if (point && chart.data.datasets[point.datasetIndex].label === 'Actual') {
-        evt.native.target.style.cursor = 'pointer';
-        cancelHide(); // hovering canvas; keep tooltip open
-      } else {
-        evt.native.target.style.cursor = 'default';
-        // do NOT schedule hide here; user may be moving toward the tooltip
-      }
+      legend: { display: true }
     }
   }
 });
-
-// Only schedule hide when leaving the canvas (tooltip handles itself)
-chart.canvas.addEventListener('mouseleave', () => scheduleHide());
-chart.canvas.addEventListener('mouseenter', () => cancelHide());
-
-// Optional tidy-ups
-window.addEventListener('scroll', () => scheduleHide());
-window.addEventListener('resize', () => scheduleHide());
 </script>
-</body></html>
+</body>
+</html>
