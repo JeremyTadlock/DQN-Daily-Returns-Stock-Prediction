@@ -2,7 +2,7 @@ name: daily-predictions
 
 on:
   schedule:
-    # Weekdays at 12:00 UTC (8am EDT / 7am EST)
+    # Weekdays at 10:00 UTC (8am EDT / 7am EST)
     - cron: "0 10 * * 1-5"
   workflow_dispatch: {}
 
