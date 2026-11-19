@@ -551,7 +551,7 @@ date,student,prediction_pct,actual_pct,timestamp_utc
 2026-11-16,"Student B — Finer Resolution (±2.5%, 0.1%)",0.40000000000000036,-1.9115265723043784,2026-11-13 17:38:22 UTC
 2026-11-17,"Student A — Normal Resolution (±4%, 0.5%)",1.0,-1.0149347444734946,2026-11-16 20:16:59 UTC
 2026-11-17,"Student B — Finer Resolution (±2.5%, 0.1%)",-0.3999999999999999,-1.0149347444734946,2026-11-16 20:17:00 UTC
-2026-11-18,"Student A — Normal Resolution (±4%, 0.5%)",1.5,,2026-11-17 19:04:12 UTC
-2026-11-18,"Student B — Finer Resolution (±2.5%, 0.1%)",0.8000000000000003,,2026-11-17 19:04:12 UTC
+2026-11-18,"Student A — Normal Resolution (±4%, 0.5%)",1.5,-0.305825764145673,2026-11-17 19:04:12 UTC
+2026-11-18,"Student B — Finer Resolution (±2.5%, 0.1%)",0.8000000000000003,-0.305825764145673,2026-11-17 19:04:12 UTC
 2026-11-19,"Student A — Normal Resolution (±4%, 0.5%)",-0.5,,2026-11-18 18:47:23 UTC
 2026-11-19,"Student B — Finer Resolution (±2.5%, 0.1%)",-0.5999999999999999,,2026-11-18 18:47:23 UTC
